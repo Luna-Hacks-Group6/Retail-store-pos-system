@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -34,6 +67,134 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      customers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          is_frequent: boolean | null
+          name: string
+          phone: string
+          purchase_count: number | null
+          total_purchases: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_frequent?: boolean | null
+          name: string
+          phone: string
+          purchase_count?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_frequent?: boolean | null
+          name?: string
+          phone?: string
+          purchase_count?: number | null
+          total_purchases?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      mpesa_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          mpesa_receipt_number: string | null
+          phone_number: string
+          result_desc: string | null
+          sale_id: string | null
+          status: string | null
+          transaction_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          mpesa_receipt_number?: string | null
+          phone_number: string
+          result_desc?: string | null
+          sale_id?: string | null
+          status?: string | null
+          transaction_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          mpesa_receipt_number?: string | null
+          phone_number?: string
+          result_desc?: string | null
+          sale_id?: string | null
+          status?: string | null
+          transaction_code?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mpesa_transactions_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      po_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          po_id: string
+          product_id: string
+          quantity: number
+          received_quantity: number | null
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          po_id: string
+          product_id: string
+          quantity: number
+          received_quantity?: number | null
+          unit_cost: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          po_id?: string
+          product_id?: string
+          quantity?: number
+          received_quantity?: number | null
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -118,6 +279,50 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_orders: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          notes: string | null
+          po_number: string
+          status: string | null
+          total_amount: number | null
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          notes?: string | null
+          po_number: string
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          notes?: string | null
+          po_number?: string
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           created_at: string | null
@@ -170,6 +375,7 @@ export type Database = {
         Row: {
           cashier_id: string
           created_at: string | null
+          customer_id: string | null
           id: string
           payment_method: string
           status: string | null
@@ -180,6 +386,7 @@ export type Database = {
         Insert: {
           cashier_id: string
           created_at?: string | null
+          customer_id?: string | null
           id?: string
           payment_method: string
           status?: string | null
@@ -190,12 +397,42 @@ export type Database = {
         Update: {
           cashier_id?: string
           created_at?: string | null
+          customer_id?: string | null
           id?: string
           payment_method?: string
           status?: string | null
           subtotal?: number
           tax_amount?: number
           total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string
         }
         Relationships: []
       }
@@ -217,6 +454,42 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          contact_person: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          payment_terms: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          payment_terms?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          payment_terms?: string | null
+          phone?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }

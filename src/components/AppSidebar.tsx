@@ -1,4 +1,4 @@
-import { Home, Package, ShoppingCart, Users, Settings, LogOut } from 'lucide-react';
+import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import {
   Sidebar,
@@ -21,8 +21,12 @@ export function AppSidebar() {
     { title: 'Dashboard', url: '/', icon: Home, roles: ['admin', 'cashier'] },
     { title: 'New Sale', url: '/sales', icon: ShoppingCart, roles: ['admin', 'cashier'] },
     { title: 'Products', url: '/products', icon: Package, roles: ['admin', 'cashier'] },
-    { title: 'User Management', url: '/users', icon: Users, roles: ['admin'] },
+    { title: 'Customers', url: '/customers', icon: Users, roles: ['admin', 'cashier'] },
+    { title: 'Vendors', url: '/vendors', icon: TruckIcon, roles: ['admin'] },
+    { title: 'Purchase Orders', url: '/purchase-orders', icon: FileText, roles: ['admin'] },
+    { title: 'Reports', url: '/reports', icon: BarChart3, roles: ['admin'] },
     { title: 'Settings', url: '/settings', icon: Settings, roles: ['admin'] },
+    { title: 'User Management', url: '/users', icon: Users, roles: ['admin'] },
   ];
 
   const filteredItems = navItems.filter((item) =>

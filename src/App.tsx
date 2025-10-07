@@ -11,6 +11,12 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Sales from "./pages/Sales";
+import Customers from "./pages/Customers";
+import Vendors from "./pages/Vendors";
+import PurchaseOrders from "./pages/PurchaseOrders";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +46,12 @@ const App = () => (
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/products" element={<Products />} />
                             <Route path="/sales" element={<Sales />} />
+                            <Route path="/customers" element={<Customers />} />
+                            <Route path="/vendors" element={<Vendors />} />
+                            <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                            <Route path="/reports" element={<Reports />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/users" element={<Users />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </main>

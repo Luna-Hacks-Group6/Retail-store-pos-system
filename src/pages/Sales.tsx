@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Search, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { Search, Trash2, ShoppingCart, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -16,10 +16,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { Receipt } from '@/components/Receipt';
 
 interface Product {
   id: string;
   sku: string;
+  barcode: string | null;
   name: string;
   retail_price: number;
   tax_rate: number;
@@ -31,16 +41,31 @@ interface CartItem extends Product {
   lineTotal: number;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export default function Sales() {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [mpesaPhone, setMpesaPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [completedSaleId, setCompletedSaleId] = useState<string | null>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadProducts();
+    loadCustomers();
+    
+    // Focus barcode input on mount for keyboard wedge scanners
+    barcodeInputRef.current?.focus();
   }, []);
 
   const loadProducts = async () => {
@@ -51,10 +76,44 @@ export default function Sales() {
     setProducts(data || []);
   };
 
+  const loadCustomers = async () => {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, phone')
+      .order('name');
+    setCustomers(data || []);
+  };
+
+  const handleBarcodeInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const barcode = e.currentTarget.value.trim();
+      if (barcode) {
+        handleBarcodeScanned(barcode);
+        e.currentTarget.value = '';
+      }
+    }
+  };
+
+  const handleBarcodeScanned = (barcode: string) => {
+    const product = products.find(
+      (p) =>
+        p.barcode === barcode ||
+        p.sku.toLowerCase() === barcode.toLowerCase()
+    );
+
+    if (product) {
+      addToCart(product);
+      toast.success(`Added ${product.name} to cart`);
+    } else {
+      toast.error('Product not found');
+    }
+  };
+
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+      p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.barcode && p.barcode.includes(searchTerm))
   );
 
   const addToCart = (product: Product) => {
@@ -113,6 +172,11 @@ export default function Sales() {
       return;
     }
 
+    if (paymentMethod === 'mpesa' && !mpesaPhone) {
+      toast.error('Please enter MPESA phone number');
+      return;
+    }
+
     setLoading(true);
     try {
       const totals = calculateTotals();
@@ -122,11 +186,12 @@ export default function Sales() {
         .from('sales')
         .insert({
           cashier_id: user?.id!,
+          customer_id: selectedCustomer || null,
           subtotal: parseFloat(totals.subtotal),
           tax_amount: parseFloat(totals.taxAmount),
           total_amount: parseFloat(totals.total),
           payment_method: paymentMethod,
-          status: 'completed',
+          status: paymentMethod === 'mpesa' ? 'pending' : 'completed',
         })
         .select()
         .single();
@@ -155,8 +220,50 @@ export default function Sales() {
         if (stockError) throw stockError;
       }
 
-      toast.success('Sale completed successfully!');
+      // Handle MPESA payment
+      if (paymentMethod === 'mpesa') {
+        const { error: mpesaError } = await supabase
+          .from('mpesa_transactions')
+          .insert({
+            sale_id: saleData.id,
+            transaction_code: `TMP${Date.now()}`,
+            phone_number: mpesaPhone,
+            amount: parseFloat(totals.total),
+            status: 'pending',
+          });
+
+        if (mpesaError) throw mpesaError;
+
+        toast.success('Sale pending MPESA confirmation');
+        toast.info(`Please pay KSh ${totals.total} to the till/paybill number`);
+      } else {
+        toast.success('Sale completed successfully!');
+      }
+
+      // Update customer purchase stats if customer selected
+      if (selectedCustomer) {
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('total_purchases, purchase_count')
+          .eq('id', selectedCustomer)
+          .single();
+
+        if (customerData) {
+          await supabase
+            .from('customers')
+            .update({
+              total_purchases: Number(customerData.total_purchases) + parseFloat(totals.total),
+              purchase_count: customerData.purchase_count + 1,
+              is_frequent: customerData.purchase_count + 1 >= 5,
+            })
+            .eq('id', selectedCustomer);
+        }
+      }
+
+      setCompletedSaleId(saleData.id);
       setCart([]);
+      setSelectedCustomer('');
+      setMpesaPhone('');
       loadProducts();
     } catch (error: any) {
       console.error('Error completing sale:', error);
@@ -179,13 +286,23 @@ export default function Sales() {
         <Card>
           <CardHeader>
             <CardTitle>Product Search</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    ref={barcodeInputRef}
+                    placeholder="Scan barcode or type SKU/name..."
+                    onKeyDown={handleBarcodeInput}
+                    className="pl-10"
+                  />
+                </div>
+                <BarcodeScanner onScan={handleBarcodeScanned} />
+              </div>
               <Input
-                placeholder="Search products by name or SKU..."
+                placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
               />
             </div>
           </CardHeader>
@@ -194,7 +311,7 @@ export default function Sales() {
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer"
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors"
                   onClick={() => addToCart(product)}
                 >
                   <div>
@@ -205,7 +322,7 @@ export default function Sales() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold">
-                      KSh {product.retail_price.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      KSh {product.retail_price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                 </div>
@@ -224,7 +341,7 @@ export default function Sales() {
           <CardContent className="space-y-4">
             {cart.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                Cart is empty. Add products to start.
+                Cart is empty. Scan or add products to start.
               </p>
             ) : (
               <>
@@ -278,12 +395,29 @@ export default function Sales() {
                 </Table>
 
                 <div className="space-y-3 pt-4 border-t">
+                  <div>
+                    <Label>Customer (Optional)</Label>
+                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Walk-in customer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Walk-in customer</SelectItem>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name} - {customer.phone}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
                     <span>KSh {totals.subtotal}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Tax (16%):</span>
+                    <span>VAT (16%):</span>
                     <span>KSh {totals.taxAmount}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold">
@@ -303,16 +437,28 @@ export default function Sales() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="mpesa" id="mpesa" />
-                        <Label htmlFor="mpesa" className="cursor-pointer">MPESA (Coming Soon)</Label>
+                        <Label htmlFor="mpesa" className="cursor-pointer">MPESA</Label>
                       </div>
                     </RadioGroup>
+
+                    {paymentMethod === 'mpesa' && (
+                      <div>
+                        <Label htmlFor="mpesa_phone">MPESA Phone Number</Label>
+                        <Input
+                          id="mpesa_phone"
+                          placeholder="254700000000"
+                          value={mpesaPhone}
+                          onChange={(e) => setMpesaPhone(e.target.value)}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <Button
                     className="w-full"
                     size="lg"
                     onClick={completeSale}
-                    disabled={loading || paymentMethod === 'mpesa'}
+                    disabled={loading}
                   >
                     {loading ? 'Processing...' : 'Complete Sale'}
                   </Button>
@@ -322,6 +468,13 @@ export default function Sales() {
           </CardContent>
         </Card>
       </div>
+
+      {completedSaleId && (
+        <Receipt
+          saleId={completedSaleId}
+          onClose={() => setCompletedSaleId(null)}
+        />
+      )}
     </div>
   );
 }
