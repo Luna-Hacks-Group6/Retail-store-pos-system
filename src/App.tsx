@@ -10,10 +10,12 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
+import NewProduct from "./pages/NewProduct";
 import Sales from "./pages/Sales";
 import Customers from "./pages/Customers";
 import Vendors from "./pages/Vendors";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import NewPurchaseOrder from "./pages/NewPurchaseOrder";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
@@ -45,10 +47,12 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/products" element={<Products />} />
+                            <Route path="/products/new" element={<NewProduct />} />
                             <Route path="/sales" element={<Sales />} />
                             <Route path="/customers" element={<Customers />} />
                             <Route path="/vendors" element={<Vendors />} />
                             <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                            <Route path="/purchase-orders/new" element={<NewPurchaseOrder />} />
                             <Route path="/reports" element={<Reports />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/users" element={<Users />} />

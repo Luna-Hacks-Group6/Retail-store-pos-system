@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ interface Product {
 }
 
 export default function Products() {
+  const navigate = useNavigate();
   const { userRole } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -84,7 +86,7 @@ export default function Products() {
           <p className="text-muted-foreground">Manage your product catalog</p>
         </div>
         {userRole === 'admin' && (
-          <Button>
+          <Button onClick={() => navigate('/products/new')}>
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>

@@ -22,67 +22,80 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface UserRole {
+interface UserWithRole {
   id: string;
-  user_id: string;
-  role: string;
-  profiles: {
-    email: string;
-    full_name: string;
-  };
+  email: string;
+  full_name: string;
+  role: string | null;
+  role_id: string | null;
 }
 
 export default function Users() {
   const { role } = useAuth();
-  const [users, setUsers] = useState<UserRole[]>([]);
+  const [users, setUsers] = useState<UserWithRole[]>([]);
 
   useEffect(() => {
     loadUsers();
   }, []);
 
   const loadUsers = async () => {
-    const { data: rolesData } = await supabase
-      .from('user_roles')
-      .select('*')
-      .order('role');
+    // Fetch all profiles
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .order('email');
 
-    if (!rolesData) {
+    if (!profilesData) {
       setUsers([]);
       return;
     }
 
-    // Fetch profiles separately
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('id, email, full_name')
-      .in('id', rolesData.map(r => r.user_id));
+    // Fetch all user roles
+    const { data: rolesData } = await supabase
+      .from('user_roles')
+      .select('id, user_id, role');
 
-    const profilesMap = new Map(profilesData?.map(p => [p.id, p]));
+    const rolesMap = new Map(rolesData?.map(r => [r.user_id, { role: r.role, role_id: r.id }]));
 
-    const usersWithProfiles = rolesData.map(role => ({
-      ...role,
-      profiles: profilesMap.get(role.user_id) || { email: '', full_name: '' }
+    const usersWithRoles = profilesData.map(profile => ({
+      id: profile.id,
+      email: profile.email,
+      full_name: profile.full_name,
+      role: rolesMap.get(profile.id)?.role || null,
+      role_id: rolesMap.get(profile.id)?.role_id || null,
     }));
 
-    setUsers(usersWithProfiles as UserRole[]);
+    setUsers(usersWithRoles);
   };
 
-  const updateRole = async (userId: string, newRole: 'admin' | 'cashier') => {
+  const assignRole = async (userId: string, newRole: 'admin' | 'cashier', roleId: string | null) => {
     if (role !== 'admin') {
       toast.error('Only admins can change roles');
       return;
     }
 
-    const { error } = await supabase
-      .from('user_roles')
-      .update({ role: newRole })
-      .eq('user_id', userId);
+    try {
+      if (roleId) {
+        // Update existing role
+        const { error } = await supabase
+          .from('user_roles')
+          .update({ role: newRole })
+          .eq('id', roleId);
 
-    if (error) {
-      toast.error(error.message);
-    } else {
+        if (error) throw error;
+      } else {
+        // Insert new role
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: newRole });
+
+        if (error) throw error;
+      }
+
       toast.success('Role updated successfully');
       loadUsers();
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -117,25 +130,34 @@ export default function Users() {
             <TableBody>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.profiles.full_name}</TableCell>
-                  <TableCell>{user.profiles.email}</TableCell>
+                  <TableCell className="font-medium">{user.full_name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                      {user.role}
-                    </Badge>
+                    {user.role ? (
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                        {user.role}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">No Role</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     {isAdmin && (
                       <Select
-                        value={user.role}
-                        onValueChange={(newRole) => updateRole(user.user_id, newRole as 'admin' | 'cashier')}
+                        value={user.role || 'no-role'}
+                        onValueChange={(newRole) => {
+                          if (newRole !== 'no-role') {
+                            assignRole(user.id, newRole as 'admin' | 'cashier', user.role_id);
+                          }
+                        }}
                       >
                         <SelectTrigger className="w-32">
-                          <SelectValue />
+                          <SelectValue placeholder="Assign role" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="cashier">Cashier</SelectItem>
+                          {!user.role && <SelectItem value="no-role">No Role</SelectItem>}
                         </SelectContent>
                       </Select>
                     )}
