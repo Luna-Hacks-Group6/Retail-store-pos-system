@@ -54,7 +54,7 @@ export default function Sales() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('walk-in');
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [completedSaleId, setCompletedSaleId] = useState<string | null>(null);
@@ -186,7 +186,7 @@ export default function Sales() {
         .from('sales')
         .insert({
           cashier_id: user?.id!,
-          customer_id: selectedCustomer || null,
+          customer_id: selectedCustomer === 'walk-in' ? null : selectedCustomer,
           subtotal: parseFloat(totals.subtotal),
           tax_amount: parseFloat(totals.taxAmount),
           total_amount: parseFloat(totals.total),
@@ -241,7 +241,7 @@ export default function Sales() {
       }
 
       // Update customer purchase stats if customer selected
-      if (selectedCustomer) {
+      if (selectedCustomer && selectedCustomer !== 'walk-in') {
         const { data: customerData } = await supabase
           .from('customers')
           .select('total_purchases, purchase_count')
@@ -262,7 +262,7 @@ export default function Sales() {
 
       setCompletedSaleId(saleData.id);
       setCart([]);
-      setSelectedCustomer('');
+      setSelectedCustomer('walk-in');
       setMpesaPhone('');
       loadProducts();
     } catch (error: any) {
@@ -402,7 +402,7 @@ export default function Sales() {
                         <SelectValue placeholder="Walk-in customer" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Walk-in customer</SelectItem>
+                        <SelectItem value="walk-in">Walk-in customer</SelectItem>
                         {customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
                             {customer.name} - {customer.phone}
