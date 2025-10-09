@@ -172,9 +172,15 @@ export default function Sales() {
       return;
     }
 
-    if (paymentMethod === 'mpesa' && !mpesaPhone) {
-      toast.error('Please enter MPESA phone number');
-      return;
+    if (paymentMethod === 'mpesa') {
+      if (!mpesaPhone) {
+        toast.error('Please enter MPESA phone number');
+        return;
+      }
+      if (!/^254[0-9]{9}$/.test(mpesaPhone)) {
+        toast.error('Invalid phone number. Use format: 254XXXXXXXXX');
+        return;
+      }
     }
 
     setLoading(true);
@@ -448,8 +454,14 @@ export default function Sales() {
                           id="mpesa_phone"
                           placeholder="254700000000"
                           value={mpesaPhone}
-                          onChange={(e) => setMpesaPhone(e.target.value)}
+                          onChange={(e) => setMpesaPhone(e.target.value.replace(/\D/g, ''))}
+                          pattern="254[0-9]{9}"
+                          maxLength={12}
+                          title="Enter phone number in format: 254700000000"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Format: 254XXXXXXXXX (12 digits starting with 254)
+                        </p>
                       </div>
                     )}
                   </div>

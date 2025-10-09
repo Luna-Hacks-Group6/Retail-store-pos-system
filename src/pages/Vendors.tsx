@@ -15,6 +15,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Vendor {
   id: string;
@@ -31,6 +41,7 @@ export default function Vendors() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [vendorToDelete, setVendorToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contact_person: '',
@@ -97,15 +108,17 @@ export default function Vendors() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure? This will delete all related purchase orders.')) return;
-    const { error } = await supabase.from('vendors').delete().eq('id', id);
+  const handleDelete = async () => {
+    if (!vendorToDelete) return;
+    
+    const { error } = await supabase.from('vendors').delete().eq('id', vendorToDelete);
     if (error) {
       toast.error(error.message);
     } else {
       toast.success('Vendor deleted');
       loadVendors();
     }
+    setVendorToDelete(null);
   };
 
   const isAdmin = role === 'admin';
@@ -207,7 +220,7 @@ export default function Vendors() {
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(vendor)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(vendor.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => setVendorToDelete(vendor.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -244,6 +257,23 @@ export default function Vendors() {
           </Card>
         ))}
       </div>
+
+      <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Vendor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this vendor? This will also delete all related purchase orders. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

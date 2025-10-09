@@ -103,6 +103,7 @@ export default function NewProduct() {
                   id="unit_cost"
                   type="number"
                   step="0.01"
+                  min="0"
                   required
                   value={formData.unit_cost}
                   onChange={(e) => setFormData({ ...formData, unit_cost: e.target.value })}
@@ -114,6 +115,7 @@ export default function NewProduct() {
                   id="retail_price"
                   type="number"
                   step="0.01"
+                  min="0"
                   required
                   value={formData.retail_price}
                   onChange={(e) => setFormData({ ...formData, retail_price: e.target.value })}
@@ -127,6 +129,7 @@ export default function NewProduct() {
                 <Input
                   id="stock_on_hand"
                   type="number"
+                  min="0"
                   value={formData.stock_on_hand}
                   onChange={(e) => setFormData({ ...formData, stock_on_hand: e.target.value })}
                 />
@@ -136,6 +139,7 @@ export default function NewProduct() {
                 <Input
                   id="reorder_level"
                   type="number"
+                  min="0"
                   value={formData.reorder_level}
                   onChange={(e) => setFormData({ ...formData, reorder_level: e.target.value })}
                 />
