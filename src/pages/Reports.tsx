@@ -13,6 +13,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
 
 export default function Reports() {
   const [salesByPayment, setSalesByPayment] = useState<any[]>([]);
@@ -161,7 +163,29 @@ export default function Reports() {
                 Sales by Payment Method
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {salesByPayment.length > 0 && (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={salesByPayment}
+                        dataKey="total"
+                        nameKey="method"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label={(entry) => `${entry.method}: KSh ${entry.total.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`}
+                      >
+                        {salesByPayment.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -192,7 +216,25 @@ export default function Reports() {
                 Top Selling Products
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {topProducts.length > 0 && (
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topProducts} layout="vertical" margin={{ left: 100 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        stroke="hsl(var(--muted-foreground))"
+                        width={90}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="total_quantity" fill="hsl(var(--chart-1))" radius={[0, 8, 8, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -225,7 +267,27 @@ export default function Reports() {
                 Low Stock Alert
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {lowStock.length > 0 && (
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={lowStock.slice(0, 10)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="hsl(var(--muted-foreground))"
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                      />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="stock_on_hand" fill="hsl(var(--chart-2))" name="Current Stock" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="reorder_level" fill="hsl(var(--chart-3))" name="Reorder Level" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -264,7 +326,21 @@ export default function Reports() {
                 Cashier Performance
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {cashierPerformance.length > 0 && (
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={cashierPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="total" fill="hsl(var(--chart-4))" name="Total Sales (KSh)" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="count" fill="hsl(var(--chart-5))" name="Transactions" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
