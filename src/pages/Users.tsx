@@ -3,9 +3,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, UserPlus } from 'lucide-react';
+import { Shield, UserPlus, Trash2, Edit, KeyRound, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -28,11 +48,15 @@ interface UserWithRole {
   full_name: string;
   role: string | null;
   role_id: string | null;
+  mfa_enabled?: boolean;
 }
 
 export default function Users() {
   const { role } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: '', email: '' });
 
   useEffect(() => {
     loadUsers();
@@ -99,6 +123,70 @@ export default function Users() {
     }
   };
 
+  const handleEditUser = (user: UserWithRole) => {
+    setEditingUser(user);
+    setEditForm({ full_name: user.full_name, email: user.email });
+  };
+
+  const saveUserEdit = async () => {
+    if (!editingUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editForm.full_name,
+          email: editForm.email,
+        })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      toast.success('User details updated successfully');
+      setEditingUser(null);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return;
+
+    try {
+      // Delete user role first
+      await supabase.from('user_roles').delete().eq('user_id', deleteUserId);
+      
+      // Delete profile
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', deleteUserId);
+
+      if (error) throw error;
+
+      toast.success('User deleted successfully');
+      setDeleteUserId(null);
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const sendPasswordReset = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset email sent');
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   const isAdmin = role === 'admin';
 
   return (
@@ -124,6 +212,7 @@ export default function Users() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>2FA</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -141,26 +230,56 @@ export default function Users() {
                       <Badge variant="outline">No Role</Badge>
                     )}
                   </TableCell>
+                  <TableCell>
+                    <Badge variant={user.mfa_enabled ? 'default' : 'outline'}>
+                      {user.mfa_enabled ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
-                    {isAdmin && (
-                      <Select
-                        value={user.role || 'no-role'}
-                        onValueChange={(newRole) => {
-                          if (newRole !== 'no-role') {
-                            assignRole(user.id, newRole as 'admin' | 'cashier', user.role_id);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Assign role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="cashier">Cashier</SelectItem>
-                          {!user.role && <SelectItem value="no-role">No Role</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <div className="flex justify-end gap-2">
+                      {isAdmin && (
+                        <>
+                          <Select
+                            value={user.role || 'no-role'}
+                            onValueChange={(newRole) => {
+                              if (newRole !== 'no-role') {
+                                assignRole(user.id, newRole as 'admin' | 'cashier', user.role_id);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Assign role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="cashier">Cashier</SelectItem>
+                              {!user.role && <SelectItem value="no-role">No Role</SelectItem>}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => sendPasswordReset(user.email)}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => setDeleteUserId(user.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -171,9 +290,21 @@ export default function Users() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Role Permissions</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" />
+            Security & Permissions
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Two-Factor Authentication
+            </h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              All users are required to enable 2FA for enhanced security. Users can set up 2FA in their profile settings.
+            </p>
+          </div>
           <div>
             <h3 className="font-semibold mb-2">Admin</h3>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
@@ -196,6 +327,62 @@ export default function Users() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User Details</DialogTitle>
+            <DialogDescription>
+              Update user information. Changes will be saved immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Full Name</Label>
+              <Input
+                id="full_name"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveUserEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user account
+              and remove their data from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
