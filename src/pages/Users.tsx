@@ -54,42 +54,65 @@ interface UserWithRole {
 export default function Users() {
   const { role } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ full_name: '', email: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadUsers();
   }, []);
 
   const loadUsers = async () => {
-    // Fetch all profiles
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('id, email, full_name')
-      .order('email');
+    try {
+      setLoading(true);
+      
+      // Fetch all profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .order('email');
 
-    if (!profilesData) {
-      setUsers([]);
-      return;
+      if (profilesError) throw profilesError;
+
+      if (!profilesData) {
+        setUsers([]);
+        return;
+      }
+
+      // Fetch all user roles
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('id, user_id, role');
+
+      const rolesMap = new Map(rolesData?.map(r => [r.user_id, { role: r.role, role_id: r.id }]));
+
+      // Fetch MFA status for all users
+      const usersWithRoles = await Promise.all(
+        profilesData.map(async (profile) => {
+          const { data: mfaData } = await supabase
+            .rpc('get_user_mfa_status', { user_id: profile.id });
+
+          return {
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.full_name,
+            role: rolesMap.get(profile.id)?.role || null,
+            role_id: rolesMap.get(profile.id)?.role_id || null,
+            mfa_enabled: mfaData || false,
+          };
+        })
+      );
+
+      setUsers(usersWithRoles);
+    } catch (error: any) {
+      console.error('Error loading users:', error);
+      toast.error('Failed to load users');
+    } finally {
+      setLoading(false);
     }
-
-    // Fetch all user roles
-    const { data: rolesData } = await supabase
-      .from('user_roles')
-      .select('id, user_id, role');
-
-    const rolesMap = new Map(rolesData?.map(r => [r.user_id, { role: r.role, role_id: r.id }]));
-
-    const usersWithRoles = profilesData.map(profile => ({
-      id: profile.id,
-      email: profile.email,
-      full_name: profile.full_name,
-      role: rolesMap.get(profile.id)?.role || null,
-      role_id: rolesMap.get(profile.id)?.role_id || null,
-    }));
-
-    setUsers(usersWithRoles);
   };
 
   const assignRole = async (userId: string, newRole: 'admin' | 'cashier', roleId: string | null) => {
@@ -132,6 +155,8 @@ export default function Users() {
     if (!editingUser) return;
 
     try {
+      setIsSaving(true);
+      
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -144,9 +169,12 @@ export default function Users() {
 
       toast.success('User details updated successfully');
       setEditingUser(null);
-      loadUsers();
+      await loadUsers();
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Error updating user:', error);
+      toast.error(error.message || 'Failed to update user');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -154,10 +182,12 @@ export default function Users() {
     if (!deleteUserId) return;
 
     try {
-      // Delete user role first
+      setIsDeleting(true);
+      
+      // Delete user role first (if exists)
       await supabase.from('user_roles').delete().eq('user_id', deleteUserId);
       
-      // Delete profile
+      // Delete profile - cascading will handle related records
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -167,9 +197,12 @@ export default function Users() {
 
       toast.success('User deleted successfully');
       setDeleteUserId(null);
-      loadUsers();
+      await loadUsers();
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Failed to delete user');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -206,18 +239,30 @@ export default function Users() {
           <CardTitle>System Users</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>2FA</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center space-y-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground">Loading users...</p>
+              </div>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No users found
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>2FA</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.full_name}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -282,9 +327,10 @@ export default function Users() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -357,10 +403,16 @@ export default function Users() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setEditingUser(null)}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
-            <Button onClick={saveUserEdit}>Save Changes</Button>
+            <Button onClick={saveUserEdit} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -376,9 +428,13 @@ export default function Users() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete User
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete User'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

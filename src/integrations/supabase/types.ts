@@ -498,6 +498,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_mfa_status: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
