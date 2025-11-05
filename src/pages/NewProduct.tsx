@@ -48,15 +48,15 @@ export default function NewProduct() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/products')}>
+    <div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/products')} className="self-start">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">New Product</h1>
-          <p className="text-muted-foreground">Add a new product to inventory</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">New Product</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Add a new product to inventory</p>
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export default function NewProduct() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sku">SKU *</Label>
                 <Input
@@ -96,7 +96,7 @@ export default function NewProduct() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="unit_cost">Unit Cost (KSh) *</Label>
                 <Input
@@ -123,7 +123,7 @@ export default function NewProduct() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="stock_on_hand">Initial Stock</Label>
                 <Input

@@ -34,7 +34,7 @@ export function Navbar() {
             <ShoppingCart className="h-6 w-6 text-primary-foreground" />
           </div>
           <span className="hidden font-bold text-xl sm:inline-block bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Wholesale POS
+            Molabs-POS
           </span>
         </NavLink>
 
@@ -85,7 +85,7 @@ export function Navbar() {
                   <ShoppingCart className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <span className="font-bold text-lg bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  Wholesale POS
+                  Molabs-POS
                 </span>
               </div>
               <div className="flex flex-col gap-1">

@@ -79,11 +79,11 @@ export default function Products() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage your product catalog</p>
         </div>
         {userRole === 'admin' && (
           <Button onClick={() => navigate('/products/new')}>
@@ -95,28 +95,28 @@ export default function Products() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Product Catalog</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Product Catalog</CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, SKU, or barcode..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm sm:text-base"
             />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>Barcode</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Retail Price</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="text-xs sm:text-sm">SKU</TableHead>
+                <TableHead className="hidden md:table-cell text-xs sm:text-sm">Barcode</TableHead>
+                <TableHead className="text-xs sm:text-sm">Name</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm">Cost</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm">Price</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm">Stock</TableHead>
+                <TableHead className="text-xs sm:text-sm">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -124,16 +124,16 @@ export default function Products() {
                 const isLowStock = product.stock_on_hand <= product.reorder_level;
                 return (
                   <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.sku}</TableCell>
-                    <TableCell>{product.barcode || '-'}</TableCell>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell className="text-right">
-                      KSh {product.unit_cost.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <TableCell className="font-medium text-xs sm:text-sm">{product.sku}</TableCell>
+                    <TableCell className="hidden md:table-cell text-xs sm:text-sm">{product.barcode || '-'}</TableCell>
+                    <TableCell className="text-xs sm:text-sm">{product.name}</TableCell>
+                    <TableCell className="text-right text-xs sm:text-sm">
+                      {product.unit_cost.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </TableCell>
-                    <TableCell className="text-right">
-                      KSh {product.retail_price.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <TableCell className="text-right text-xs sm:text-sm">
+                      {product.retail_price.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </TableCell>
-                    <TableCell className="text-right">{product.stock_on_hand}</TableCell>
+                    <TableCell className="text-right text-xs sm:text-sm">{product.stock_on_hand}</TableCell>
                     <TableCell>
                       {isLowStock ? (
                         <Badge variant="destructive" className="gap-1">

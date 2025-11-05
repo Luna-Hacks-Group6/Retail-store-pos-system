@@ -120,11 +120,11 @@ export default function Customers() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Customers</h1>
-          <p className="text-muted-foreground">Manage your customer database</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Customers</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage your customer database</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -186,28 +186,28 @@ export default function Customers() {
             />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Purchases</TableHead>
-                <TableHead>Total Spent</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-xs sm:text-sm">Name</TableHead>
+                <TableHead className="text-xs sm:text-sm">Phone</TableHead>
+                <TableHead className="hidden md:table-cell text-xs sm:text-sm">Email</TableHead>
+                <TableHead className="text-xs sm:text-sm">Purchases</TableHead>
+                <TableHead className="hidden lg:table-cell text-xs sm:text-sm">Total Spent</TableHead>
+                <TableHead className="hidden sm:table-cell text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
-                  <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell>{customer.email || '-'}</TableCell>
-                  <TableCell>{customer.purchase_count}</TableCell>
-                  <TableCell>KSh {customer.total_purchases.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium text-xs sm:text-sm">{customer.name}</TableCell>
+                  <TableCell className="text-xs sm:text-sm">{customer.phone}</TableCell>
+                  <TableCell className="hidden md:table-cell text-xs sm:text-sm">{customer.email || '-'}</TableCell>
+                  <TableCell className="text-xs sm:text-sm">{customer.purchase_count}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-xs sm:text-sm">KSh {customer.total_purchases.toLocaleString('en-KE', { minimumFractionDigits: 0 })}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     {customer.is_frequent && (
                       <Badge variant="secondary">
                         <Users className="h-3 w-3 mr-1" />

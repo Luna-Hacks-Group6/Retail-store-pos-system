@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
@@ -29,6 +30,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <PWAInstallPrompt />
+      <OfflineIndicator />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -39,7 +41,7 @@ const App = () => (
                 <ProtectedRoute>
                   <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-muted/20">
                     <Navbar />
-                    <main className="container mx-auto px-4 py-6">
+                    <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/products" element={<Products />} />

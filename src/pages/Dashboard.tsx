@@ -75,7 +75,7 @@ export default function Dashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Header Section */}
       <div className="space-y-2">
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Dashboard
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
