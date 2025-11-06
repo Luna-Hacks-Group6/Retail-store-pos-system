@@ -104,6 +104,33 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_members: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          points: number
+          tier: string
+          total_spent: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          points?: number
+          tier?: string
+          total_spent?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          points?: number
+          tier?: string
+          total_spent?: number
+        }
+        Relationships: []
+      }
       mpesa_transactions: {
         Row: {
           amount: number
@@ -323,6 +350,36 @@ export type Database = {
           },
         ]
       }
+      returns: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          refund_method: string
+          return_amount: number
+          sale_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          refund_method: string
+          return_amount: number
+          sale_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          refund_method?: string
+          return_amount?: number
+          sale_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       sale_items: {
         Row: {
           created_at: string | null
@@ -436,6 +493,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shifts: {
+        Row: {
+          closing_cash: number | null
+          created_at: string
+          end_time: string | null
+          id: string
+          opening_cash: number
+          start_time: string
+          status: string
+          total_sales: number
+          user_id: string
+        }
+        Insert: {
+          closing_cash?: number | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          opening_cash: number
+          start_time?: string
+          status?: string
+          total_sales?: number
+          user_id: string
+        }
+        Update: {
+          closing_cash?: number | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          opening_cash?: number
+          start_time?: string
+          status?: string
+          total_sales?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -498,10 +591,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_user_mfa_status: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      get_user_mfa_status: { Args: { user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

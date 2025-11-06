@@ -42,12 +42,31 @@ export default function Loyalty() {
     try {
       const { data, error } = await supabase
         .from('loyalty_members')
-        .select('*, customers(name, phone)')
+        .select('*')
         .order('points', { ascending: false });
 
       if (error) throw error;
-      setMembers(data || []);
-    } catch (error) {
+      
+      // Fetch customer details separately
+      if (data && data.length > 0) {
+        const customerIds = [...new Set(data.map(m => m.customer_id))];
+        const { data: customersData } = await supabase
+          .from('customers')
+          .select('id, name, phone')
+          .in('id', customerIds);
+        
+        const customersMap = new Map(customersData?.map(c => [c.id, { name: c.name, phone: c.phone }]));
+        
+        const membersWithCustomers = data.map(member => ({
+          ...member,
+          customers: customersMap.get(member.customer_id)
+        }));
+        
+        setMembers(membersWithCustomers as any);
+      } else {
+        setMembers([]);
+      }
+    } catch (error: any) {
       toast({
         title: 'Error loading loyalty members',
         description: error.message,

@@ -1,22 +1,26 @@
 import { useState } from 'react';
-import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, Menu, X } from 'lucide-react';
+import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, Menu, X, RotateCw, Clock, Award } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import molabsLogo from '@/assets/molabs-logo.png';
 
 export function Navbar() {
   const { userRole, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { title: 'Dashboard', url: '/', icon: Home, roles: ['admin', 'cashier'] },
+    { title: 'Dashboard', url: '/dashboard', icon: Home, roles: ['admin', 'cashier'] },
     { title: 'New Sale', url: '/sales', icon: ShoppingCart, roles: ['admin', 'cashier'] },
     { title: 'Products', url: '/products', icon: Package, roles: ['admin', 'cashier'] },
     { title: 'Customers', url: '/customers', icon: Users, roles: ['admin', 'cashier'] },
     { title: 'Vendors', url: '/vendors', icon: TruckIcon, roles: ['admin'] },
     { title: 'Purchase Orders', url: '/purchase-orders', icon: FileText, roles: ['admin'] },
     { title: 'Reports', url: '/reports', icon: BarChart3, roles: ['admin'] },
+    { title: 'Returns', url: '/returns', icon: RotateCw, roles: ['admin', 'cashier'] },
+    { title: 'Shifts', url: '/shifts', icon: Clock, roles: ['admin', 'cashier'] },
+    { title: 'Loyalty', url: '/loyalty', icon: Award, roles: ['admin', 'cashier'] },
     { title: 'Settings', url: '/settings', icon: Settings, roles: ['admin'] },
     { title: 'User Management', url: '/users', icon: Users, roles: ['admin'] },
   ];
@@ -29,13 +33,8 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <NavLink to="/" className="flex items-center space-x-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60">
-            <ShoppingCart className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <span className="hidden font-bold text-xl sm:inline-block bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Molabs-POS
-          </span>
+        <NavLink to="/dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+          <img src={molabsLogo} alt="Molabs POS" className="h-10 w-auto" />
         </NavLink>
 
         {/* Desktop Navigation */}
@@ -81,12 +80,7 @@ export function Navbar() {
           <SheetContent side="right" className="w-64">
             <div className="flex flex-col gap-4 mt-8">
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60">
-                  <ShoppingCart className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <span className="font-bold text-lg bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  Molabs-POS
-                </span>
+                <img src={molabsLogo} alt="Molabs POS" className="h-10 w-auto" />
               </div>
               <div className="flex flex-col gap-1">
                 {filteredItems.map((item) => (

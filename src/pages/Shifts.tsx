@@ -38,13 +38,32 @@ export default function Shifts() {
     try {
       const { data, error } = await supabase
         .from('shifts')
-        .select('*, profiles(full_name)')
+        .select('*')
         .order('start_time', { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      setShifts(data || []);
-    } catch (error) {
+      
+      // Fetch profiles separately
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(s => s.user_id))];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        
+        const profilesMap = new Map(profilesData?.map(p => [p.id, { full_name: p.full_name }]));
+        
+        const shiftsWithProfiles = data.map(shift => ({
+          ...shift,
+          profiles: profilesMap.get(shift.user_id)
+        }));
+        
+        setShifts(shiftsWithProfiles as any);
+      } else {
+        setShifts([]);
+      }
+    } catch (error: any) {
       toast({
         title: 'Error loading shifts',
         description: error.message,
