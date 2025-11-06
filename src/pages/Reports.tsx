@@ -3,7 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, TrendingUp, DollarSign, Package, AlertTriangle } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Download, TrendingUp, DollarSign, Package, AlertTriangle, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import {
   Table,
   TableBody,
@@ -22,10 +25,12 @@ export default function Reports() {
   const [lowStock, setLowStock] = useState<any[]>([]);
   const [cashierPerformance, setCashierPerformance] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState('today');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [customDateMode, setCustomDateMode] = useState(false);
 
   useEffect(() => {
     loadReports();
-  }, [dateRange]);
+  }, [dateRange, selectedDate, customDateMode]);
 
   const loadReports = async () => {
     const startDate = getStartDate(dateRange);
@@ -118,6 +123,12 @@ export default function Reports() {
   };
 
   const getStartDate = (range: string) => {
+    if (customDateMode && selectedDate) {
+      const date = new Date(selectedDate);
+      date.setHours(0, 0, 0, 0);
+      return date.toISOString();
+    }
+
     const now = new Date();
     switch (range) {
       case 'today':
@@ -134,17 +145,66 @@ export default function Reports() {
     }
   };
 
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    setCustomDateMode(true);
+    setDateRange('custom');
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Reports</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Reports</h1>
           <p className="text-muted-foreground">Business analytics and insights</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant={dateRange === 'today' ? 'default' : 'outline'} onClick={() => setDateRange('today')}>Today</Button>
-          <Button variant={dateRange === 'week' ? 'default' : 'outline'} onClick={() => setDateRange('week')}>This Week</Button>
-          <Button variant={dateRange === 'month' ? 'default' : 'outline'} onClick={() => setDateRange('month')}>This Month</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant={dateRange === 'today' && !customDateMode ? 'default' : 'outline'} 
+            onClick={() => {
+              setDateRange('today');
+              setCustomDateMode(false);
+            }}
+            size="sm"
+          >
+            Today
+          </Button>
+          <Button 
+            variant={dateRange === 'week' && !customDateMode ? 'default' : 'outline'} 
+            onClick={() => {
+              setDateRange('week');
+              setCustomDateMode(false);
+            }}
+            size="sm"
+          >
+            This Week
+          </Button>
+          <Button 
+            variant={dateRange === 'month' && !customDateMode ? 'default' : 'outline'} 
+            onClick={() => {
+              setDateRange('month');
+              setCustomDateMode(false);
+            }}
+            size="sm"
+          >
+            This Month
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant={customDateMode ? 'default' : 'outline'} size="sm">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {customDateMode && selectedDate ? format(selectedDate, 'PPP') : 'Pick Date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

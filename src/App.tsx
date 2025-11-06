@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
@@ -18,6 +19,9 @@ import Vendors from "./pages/Vendors";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import NewPurchaseOrder from "./pages/NewPurchaseOrder";
 import Reports from "./pages/Reports";
+import Returns from "./pages/Returns";
+import Shifts from "./pages/Shifts";
+import Loyalty from "./pages/Loyalty";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
@@ -34,6 +38,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/*"
@@ -43,7 +48,7 @@ const App = () => (
                     <Navbar />
                     <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
                       <Routes>
-                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/products/new" element={<NewProduct />} />
                         <Route path="/sales" element={<Sales />} />
@@ -52,6 +57,9 @@ const App = () => (
                         <Route path="/purchase-orders" element={<PurchaseOrders />} />
                         <Route path="/purchase-orders/new" element={<NewPurchaseOrder />} />
                         <Route path="/reports" element={<Reports />} />
+                        <Route path="/returns" element={<Returns />} />
+                        <Route path="/shifts" element={<Shifts />} />
+                        <Route path="/loyalty" element={<Loyalty />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/users" element={<Users />} />
                         <Route path="*" element={<NotFound />} />
