@@ -93,8 +93,8 @@ export default function Landing() {
 
       {/* Problems & Solutions */}
       <section className="py-12 sm:py-16 bg-muted/30 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 animate-slide-in-right">
+        <div className="container mx-auto px-4 sm:px-6 animate-slide-in-left">
+          <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">Challenges We Solve</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Running a wholesale business is complex. Molabs-POS simplifies your daily operations.
@@ -102,7 +102,7 @@ export default function Landing() {
           </div>
           <div className="grid sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {problems.map((item, idx) => (
-              <Card key={idx} className="border-2 hover:border-primary transition-all duration-300 hover:scale-105 animate-slide-in-right" style={{ animationDelay: `${idx * 100}ms` }}>
+              <Card key={idx} className="border-2 hover:border-primary transition-all duration-300 hover:scale-105" style={{ animationDelay: `${idx * 100}ms` }}>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <div className="p-2 bg-destructive/10 rounded-lg shrink-0">
@@ -127,8 +127,8 @@ export default function Landing() {
 
       {/* Features Grid */}
       <section className="py-12 sm:py-16 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 animate-slide-in-right">
+        <div className="container mx-auto px-4 sm:px-6 animate-slide-in-left">
+          <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">Everything You Need to Succeed</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Powerful features designed to streamline your wholesale operations from end to end.
@@ -138,7 +138,7 @@ export default function Landing() {
             {features.map((feature, idx) => {
               const Icon = feature.icon;
               return (
-                <Card key={idx} className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-slide-in-right" style={{ animationDelay: `${idx * 100}ms` }}>
+                <Card key={idx} className="hover:shadow-lg transition-all duration-300 hover:scale-105" style={{ animationDelay: `${idx * 100}ms` }}>
                   <CardContent className="p-6">
                     <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
                       <Icon className="h-6 w-6 text-primary" />
@@ -155,8 +155,8 @@ export default function Landing() {
 
       {/* Benefits */}
       <section className="py-12 sm:py-16 bg-gradient-to-br from-primary/5 to-accent/5 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 animate-slide-in-right">
+        <div className="container mx-auto px-4 sm:px-6 animate-slide-in-left">
+          <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">The Molabs Advantage</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Measurable results that impact your bottom line from day one.
@@ -164,7 +164,7 @@ export default function Landing() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {benefits.map((benefit, idx) => (
-              <div key={idx} className="flex items-start gap-3 bg-card p-4 rounded-lg shadow-sm transition-all duration-300 hover:scale-105 animate-slide-in-right" style={{ animationDelay: `${idx * 100}ms` }}>
+              <div key={idx} className="flex items-start gap-3 bg-card p-4 rounded-lg shadow-sm transition-all duration-300 hover:scale-105" style={{ animationDelay: `${idx * 100}ms` }}>
                 <CheckCircle2 className="h-6 w-6 text-accent shrink-0 mt-0.5" />
                 <p className="font-medium">{benefit}</p>
               </div>
