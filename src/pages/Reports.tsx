@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Reports() {
   const [salesByPayment, setSalesByPayment] = useState<any[]>([]);
@@ -229,7 +229,7 @@ export default function Reports() {
                   config={{
                     total: { label: "Total Amount", color: "hsl(var(--chart-1))" },
                   }}
-                  className="h-[300px]"
+                  className="h-[350px]"
                 >
                   <PieChart>
                     <Pie
@@ -238,7 +238,9 @@ export default function Reports() {
                       nameKey="method"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      innerRadius={60}
+                      outerRadius={110}
+                      paddingAngle={5}
                       label={(entry) => `${entry.method}: KSh ${entry.total.toLocaleString('en-KE', { maximumFractionDigits: 0 })}`}
                     >
                       {salesByPayment.map((entry, index) => (
@@ -246,6 +248,7 @@ export default function Reports() {
                       ))}
                     </Pie>
                     <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend />
                   </PieChart>
                 </ChartContainer>
               )}

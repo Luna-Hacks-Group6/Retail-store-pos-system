@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Search, Trash2, ShoppingCart, User } from 'lucide-react';
+import { Search, Trash2, ShoppingCart, User, Plus, Minus, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { Receipt } from '@/components/Receipt';
+import { Badge } from '@/components/ui/badge';
 
 interface Product {
   id: string;
@@ -34,6 +35,7 @@ interface Product {
   retail_price: number;
   tax_rate: number;
   stock_on_hand: number;
+  category?: string;
 }
 
 interface CartItem extends Product {
@@ -63,8 +65,6 @@ export default function Sales() {
   useEffect(() => {
     loadProducts();
     loadCustomers();
-    
-    // Focus barcode input on mount for keyboard wedge scanners
     barcodeInputRef.current?.focus();
   }, []);
 
@@ -187,7 +187,6 @@ export default function Sales() {
     try {
       const totals = calculateTotals();
 
-      // Create sale
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert({
@@ -204,7 +203,6 @@ export default function Sales() {
 
       if (saleError) throw saleError;
 
-      // Create sale items and update stock
       for (const item of cart) {
         const { error: itemError } = await supabase.from('sale_items').insert({
           sale_id: saleData.id,
@@ -217,7 +215,6 @@ export default function Sales() {
 
         if (itemError) throw itemError;
 
-        // Update stock
         const { error: stockError } = await supabase
           .from('products')
           .update({ stock_on_hand: item.stock_on_hand - item.quantity })
@@ -226,7 +223,6 @@ export default function Sales() {
         if (stockError) throw stockError;
       }
 
-      // Handle MPESA payment
       if (paymentMethod === 'mpesa') {
         const { error: mpesaError } = await supabase
           .from('mpesa_transactions')
@@ -246,7 +242,6 @@ export default function Sales() {
         toast.success('Sale completed successfully!');
       }
 
-      // Update customer purchase stats if customer selected
       if (selectedCustomer && selectedCustomer !== 'walk-in') {
         const { data: customerData } = await supabase
           .from('customers')
@@ -282,203 +277,260 @@ export default function Sales() {
   const totals = calculateTotals();
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">New Sale</h1>
-        <p className="text-muted-foreground">Create a new sales transaction</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Point of Sale
+            </h1>
+            <p className="text-muted-foreground mt-1">Fast, modern checkout experience</p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg border border-primary/20">
+            <ShoppingCart className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-primary">{cart.length} items</span>
+          </div>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Product Search</CardTitle>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    ref={barcodeInputRef}
-                    placeholder="Scan barcode or type SKU/name..."
-                    onKeyDown={handleBarcodeInput}
-                    className="pl-10"
-                  />
-                </div>
-                <BarcodeScanner onScan={handleBarcodeScanned} />
-              </div>
-              <Input
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                  onClick={() => addToCart(product)}
-                >
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {product.sku} • Stock: {product.stock_on_hand}
-                    </p>
+        <div className="grid gap-6 lg:grid-cols-[1fr_450px]">
+          {/* Product Section */}
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <Card className="border-2 shadow-lg">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Package className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">
-                      KSh {product.retail_price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-                    </p>
+                  <CardTitle className="text-xl">Product Catalog</CardTitle>
+                </div>
+                <div className="space-y-3 pt-4">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        ref={barcodeInputRef}
+                        placeholder="🔍 Scan barcode or enter SKU..."
+                        onKeyDown={handleBarcodeInput}
+                        className="pl-10 h-12 text-lg border-2 focus:border-primary transition-all"
+                      />
+                    </div>
+                    <BarcodeScanner onScan={handleBarcodeScanned} />
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, SKU, or barcode..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
+                  {filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className="group relative p-4 border-2 rounded-xl hover:border-primary hover:shadow-lg cursor-pointer transition-all duration-300 hover:scale-105 bg-card"
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-start justify-between">
+                          <h3 className="font-semibold text-sm line-clamp-2 flex-1 group-hover:text-primary transition-colors">
+                            {product.name}
+                          </h3>
+                          {product.stock_on_hand <= 5 && (
+                            <Badge variant={product.stock_on_hand === 0 ? 'destructive' : 'secondary'} className="text-xs">
+                              {product.stock_on_hand === 0 ? 'Out' : 'Low'}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">
+                            SKU: {product.sku}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Stock: <span className={product.stock_on_hand <= 5 ? 'text-destructive font-semibold' : 'text-accent font-semibold'}>{product.stock_on_hand}</span>
+                          </p>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xl font-bold text-primary">
+                            KSh {product.retail_price.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 border-2 border-transparent group-hover:border-primary rounded-xl pointer-events-none transition-all duration-300" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Shopping Cart ({cart.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {cart.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Cart is empty. Scan or add products to start.
-              </p>
-            ) : (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="w-24">Qty</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cart.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              KSh {item.retail_price.toFixed(2)} each
+          {/* Cart Section */}
+          <div className="space-y-4">
+            <Card className="border-2 shadow-xl sticky top-4">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5 border-b-2">
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="p-2 bg-primary rounded-lg">
+                    <ShoppingCart className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  Shopping Cart
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                {cart.length === 0 ? (
+                  <div className="text-center py-12">
+                    <ShoppingCart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground font-medium">Cart is empty</p>
+                    <p className="text-sm text-muted-foreground mt-1">Scan or select products to start</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {cart.map((item) => (
+                        <div key={item.id} className="p-3 border-2 rounded-lg bg-card hover:border-primary/50 transition-all">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                KSh {item.retail_price.toFixed(2)} each
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFromCart(item.id)}
+                              className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                                className="h-8 w-8"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-12 text-center font-semibold">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateQuantity(item.id, Math.min(item.stock_on_hand, item.quantity + 1))}
+                                className="h-8 w-8"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <p className="font-bold text-primary">
+                              KSh {item.lineTotal.toFixed(2)}
                             </p>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="1"
-                            max={item.stock_on_hand}
-                            value={item.quantity}
-                            onChange={(e) =>
-                              updateQuantity(item.id, parseInt(e.target.value) || 1)
-                            }
-                            className="w-20"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          KSh {item.lineTotal.toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeFromCart(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                      ))}
+                    </div>
 
-                <div className="space-y-3 pt-4 border-t">
-                  <div>
-                    <Label>Customer (Optional)</Label>
-                    <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Walk-in customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="walk-in">Walk-in customer</SelectItem>
-                        {customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name} - {customer.phone}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal:</span>
-                    <span>KSh {totals.subtotal}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>VAT (16%):</span>
-                    <span>KSh {totals.taxAmount}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span>KSh {totals.total}</span>
-                  </div>
-
-                  <div className="space-y-3 pt-4">
-                    <Label>Payment Method</Label>
-                    <RadioGroup
-                      value={paymentMethod}
-                      onValueChange={(value) => setPaymentMethod(value as 'cash' | 'mpesa')}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="cash" id="cash" />
-                        <Label htmlFor="cash" className="cursor-pointer">Cash</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="mpesa" id="mpesa" />
-                        <Label htmlFor="mpesa" className="cursor-pointer">MPESA</Label>
-                      </div>
-                    </RadioGroup>
-
-                    {paymentMethod === 'mpesa' && (
+                    <div className="space-y-3 pt-4 border-t-2">
                       <div>
-                        <Label htmlFor="mpesa_phone">MPESA Phone Number</Label>
-                        <Input
-                          id="mpesa_phone"
-                          placeholder="254700000000"
-                          value={mpesaPhone}
-                          onChange={(e) => setMpesaPhone(e.target.value.replace(/\D/g, ''))}
-                          pattern="254[0-9]{9}"
-                          maxLength={12}
-                          title="Enter phone number in format: 254700000000"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Format: 254XXXXXXXXX (12 digits starting with 254)
-                        </p>
+                        <Label className="text-xs font-semibold text-muted-foreground">CUSTOMER</Label>
+                        <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Walk-in customer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="walk-in">Walk-in customer</SelectItem>
+                            {customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name} - {customer.phone}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-                  </div>
 
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={completeSale}
-                    disabled={loading}
-                  >
-                    {loading ? 'Processing...' : 'Complete Sale'}
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                      <div className="space-y-2 py-3 bg-muted/30 rounded-lg px-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Subtotal:</span>
+                          <span className="font-semibold">KSh {totals.subtotal}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">VAT (16%):</span>
+                          <span className="font-semibold">KSh {totals.taxAmount}</span>
+                        </div>
+                        <div className="flex justify-between text-xl font-bold pt-2 border-t">
+                          <span>Total:</span>
+                          <span className="text-primary">KSh {totals.total}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="text-xs font-semibold text-muted-foreground">PAYMENT METHOD</Label>
+                        <RadioGroup
+                          value={paymentMethod}
+                          onValueChange={(value) => setPaymentMethod(value as 'cash' | 'mpesa')}
+                          className="grid grid-cols-2 gap-2"
+                        >
+                          <div>
+                            <RadioGroupItem value="cash" id="cash" className="peer sr-only" />
+                            <Label
+                              htmlFor="cash"
+                              className="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer hover:border-primary transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                            >
+                              Cash
+                            </Label>
+                          </div>
+                          <div>
+                            <RadioGroupItem value="mpesa" id="mpesa" className="peer sr-only" />
+                            <Label
+                              htmlFor="mpesa"
+                              className="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer hover:border-primary transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                            >
+                              M-PESA
+                            </Label>
+                          </div>
+                        </RadioGroup>
+
+                        {paymentMethod === 'mpesa' && (
+                          <div className="animate-fade-in">
+                            <Label htmlFor="mpesa_phone" className="text-sm">M-PESA Phone Number</Label>
+                            <Input
+                              id="mpesa_phone"
+                              placeholder="254700000000"
+                              value={mpesaPhone}
+                              onChange={(e) => setMpesaPhone(e.target.value.replace(/\D/g, ''))}
+                              pattern="254[0-9]{9}"
+                              maxLength={12}
+                              className="mt-1"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Format: 254XXXXXXXXX
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        className="w-full h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                        size="lg"
+                        onClick={completeSale}
+                        disabled={loading}
+                      >
+                        {loading ? 'Processing...' : `Complete Sale - KSh ${totals.total}`}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {completedSaleId && (

@@ -70,10 +70,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen w-full">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 py-12 sm:py-20">
+      <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 py-12 sm:py-20 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8">
-            <img src={molabsLogo} alt="Molabs Tech Solutions" className="h-16 sm:h-20 w-auto" />
+          <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8 animate-fade-in">
+            <img src={molabsLogo} alt="Molabs Tech Solutions" className="h-24 sm:h-32 md:h-40 w-auto" />
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight max-w-4xl">
               Transform Your Wholesale Business with
               <span className="text-primary block mt-2">Molabs-POS</span>
@@ -86,18 +86,15 @@ export default function Landing() {
               <Button size="lg" onClick={() => navigate('/auth')} className="text-lg px-8">
                 Get Started <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8">
-                Watch Demo
-              </Button>
             </div>
           </div>
         </div>
       </section>
 
       {/* Problems & Solutions */}
-      <section className="py-12 sm:py-16 bg-muted/30">
+      <section className="py-12 sm:py-16 bg-muted/30 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 animate-slide-in-right">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">Challenges We Solve</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Running a wholesale business is complex. Molabs-POS simplifies your daily operations.
@@ -105,7 +102,7 @@ export default function Landing() {
           </div>
           <div className="grid sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {problems.map((item, idx) => (
-              <Card key={idx} className="border-2 hover:border-primary transition-colors">
+              <Card key={idx} className="border-2 hover:border-primary transition-all duration-300 hover:scale-105 animate-slide-in-right" style={{ animationDelay: `${idx * 100}ms` }}>
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     <div className="p-2 bg-destructive/10 rounded-lg shrink-0">
@@ -129,9 +126,9 @@ export default function Landing() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-12 sm:py-16">
+      <section className="py-12 sm:py-16 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 animate-slide-in-right">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">Everything You Need to Succeed</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Powerful features designed to streamline your wholesale operations from end to end.
@@ -141,7 +138,7 @@ export default function Landing() {
             {features.map((feature, idx) => {
               const Icon = feature.icon;
               return (
-                <Card key={idx} className="hover:shadow-lg transition-shadow">
+                <Card key={idx} className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-slide-in-right" style={{ animationDelay: `${idx * 100}ms` }}>
                   <CardContent className="p-6">
                     <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
                       <Icon className="h-6 w-6 text-primary" />
@@ -157,9 +154,9 @@ export default function Landing() {
       </section>
 
       {/* Benefits */}
-      <section className="py-12 sm:py-16 bg-gradient-to-br from-primary/5 to-accent/5">
+      <section className="py-12 sm:py-16 bg-gradient-to-br from-primary/5 to-accent/5 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 animate-slide-in-right">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">The Molabs Advantage</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Measurable results that impact your bottom line from day one.
@@ -167,7 +164,7 @@ export default function Landing() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {benefits.map((benefit, idx) => (
-              <div key={idx} className="flex items-start gap-3 bg-card p-4 rounded-lg shadow-sm">
+              <div key={idx} className="flex items-start gap-3 bg-card p-4 rounded-lg shadow-sm transition-all duration-300 hover:scale-105 animate-slide-in-right" style={{ animationDelay: `${idx * 100}ms` }}>
                 <CheckCircle2 className="h-6 w-6 text-accent shrink-0 mt-0.5" />
                 <p className="font-medium">{benefit}</p>
               </div>
@@ -212,7 +209,7 @@ export default function Landing() {
 
       {/* CTA Section */}
       <section className="py-12 sm:py-20 bg-gradient-to-r from-primary to-primary/80">
-        <div className="container mx-auto px-4 sm:px-6 text-center">
+        <div className="container mx-auto px-4 sm:px-6 text-center animate-fade-in">
           <h2 className="text-2xl sm:text-4xl font-bold text-primary-foreground mb-6">
             Ready to Transform Your Business?
           </h2>
@@ -220,16 +217,13 @@ export default function Landing() {
             Join hundreds of wholesale businesses that trust Molabs-POS for their daily operations.
             Start your journey to streamlined success today.
           </p>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/auth')} className="text-lg px-8">
-            Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="py-8 bg-muted/30 border-t">
         <div className="container mx-auto px-4 sm:px-6 text-center">
-          <img src={molabsLogo} alt="Molabs Tech Solutions" className="h-10 w-auto mx-auto mb-4" />
+          <img src={molabsLogo} alt="Molabs Tech Solutions" className="h-14 sm:h-16 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground">
             © 2024 Molabs Tech Solutions. All rights reserved.
           </p>
