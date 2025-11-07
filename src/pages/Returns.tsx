@@ -44,13 +44,13 @@ export default function Returns() {
   const loadReturns = async () => {
     try {
       const { data, error } = await supabase
-        .from('returns')
+        .from('returns' as any)
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReturns(data || []);
-    } catch (error) {
+      setReturns((data || []) as unknown as Return[]);
+    } catch (error: any) {
       toast({
         title: 'Error loading returns',
         description: error.message,
@@ -65,13 +65,13 @@ export default function Returns() {
     e.preventDefault();
     
     try {
-      const { error } = await supabase.from('returns').insert([{
+      const { error } = await supabase.from('returns' as any).insert([{
         sale_id: formData.sale_id,
         return_amount: parseFloat(formData.return_amount),
         reason: formData.reason,
         refund_method: formData.refund_method,
         status: formData.status
-      }]);
+      } as any]);
 
       if (error) throw error;
 
@@ -101,8 +101,8 @@ export default function Returns() {
   const updateReturnStatus = async (id: string, status: string) => {
     try {
       const { error } = await supabase
-        .from('returns')
-        .update({ status })
+        .from('returns' as any)
+        .update({ status } as any)
         .eq('id', id);
 
       if (error) throw error;
@@ -113,7 +113,7 @@ export default function Returns() {
       });
       
       loadReturns();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error updating status',
         description: error.message,

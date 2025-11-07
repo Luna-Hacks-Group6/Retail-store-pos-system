@@ -41,7 +41,7 @@ export default function Loyalty() {
   const loadLoyaltyMembers = async () => {
     try {
       const { data, error } = await supabase
-        .from('loyalty_members')
+        .from('loyalty_members' as any)
         .select('*')
         .order('points', { ascending: false });
 
@@ -49,7 +49,7 @@ export default function Loyalty() {
       
       // Fetch customer details separately
       if (data && data.length > 0) {
-        const customerIds = [...new Set(data.map(m => m.customer_id))];
+        const customerIds = [...new Set(data.map((m: any) => m.customer_id))];
         const { data: customersData } = await supabase
           .from('customers')
           .select('id, name, phone')
@@ -57,12 +57,12 @@ export default function Loyalty() {
         
         const customersMap = new Map(customersData?.map(c => [c.id, { name: c.name, phone: c.phone }]));
         
-        const membersWithCustomers = data.map(member => ({
+        const membersWithCustomers = data.map((member: any) => ({
           ...member,
           customers: customersMap.get(member.customer_id)
         }));
         
-        setMembers(membersWithCustomers as any);
+        setMembers(membersWithCustomers as LoyaltyMember[]);
       } else {
         setMembers([]);
       }
@@ -92,8 +92,8 @@ export default function Loyalty() {
       if (!member) return;
 
       const { error } = await supabase
-        .from('loyalty_members')
-        .update({ points: member.points + points })
+        .from('loyalty_members' as any)
+        .update({ points: member.points + points } as any)
         .eq('id', memberId);
 
       if (error) throw error;
@@ -104,7 +104,7 @@ export default function Loyalty() {
       });
       
       loadLoyaltyMembers();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error adding points',
         description: error.message,
@@ -126,8 +126,8 @@ export default function Loyalty() {
       }
 
       const { error } = await supabase
-        .from('loyalty_members')
-        .update({ points: member.points - points })
+        .from('loyalty_members' as any)
+        .update({ points: member.points - points } as any)
         .eq('id', memberId);
 
       if (error) throw error;
@@ -138,7 +138,7 @@ export default function Loyalty() {
       });
       
       loadLoyaltyMembers();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error redeeming points',
         description: error.message,

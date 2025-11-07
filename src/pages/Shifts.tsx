@@ -37,7 +37,7 @@ export default function Shifts() {
   const loadShifts = async () => {
     try {
       const { data, error } = await supabase
-        .from('shifts')
+        .from('shifts' as any)
         .select('*')
         .order('start_time', { ascending: false })
         .limit(20);
@@ -46,7 +46,7 @@ export default function Shifts() {
       
       // Fetch profiles separately
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(s => s.user_id))];
+        const userIds = [...new Set(data.map((s: any) => s.user_id))];
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, full_name')
@@ -54,12 +54,12 @@ export default function Shifts() {
         
         const profilesMap = new Map(profilesData?.map(p => [p.id, { full_name: p.full_name }]));
         
-        const shiftsWithProfiles = data.map(shift => ({
+        const shiftsWithProfiles = data.map((shift: any) => ({
           ...shift,
           profiles: profilesMap.get(shift.user_id)
         }));
         
-        setShifts(shiftsWithProfiles as any);
+        setShifts(shiftsWithProfiles as Shift[]);
       } else {
         setShifts([]);
       }
@@ -77,13 +77,13 @@ export default function Shifts() {
   const loadActiveShift = async () => {
     try {
       const { data, error } = await supabase
-        .from('shifts')
+        .from('shifts' as any)
         .select('*')
         .eq('user_id', user?.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
-      if (data) setActiveShift(data);
+      if (data) setActiveShift(data as unknown as Shift);
     } catch (error) {
       // No active shift, which is fine
     }
@@ -101,25 +101,25 @@ export default function Shifts() {
 
     try {
       const { data, error } = await supabase
-        .from('shifts')
+        .from('shifts' as any)
         .insert([{
           user_id: user?.id,
           opening_cash: parseFloat(openingCash),
           status: 'active'
-        }])
+        } as any])
         .select()
         .single();
 
       if (error) throw error;
 
-      setActiveShift(data);
+      setActiveShift(data as unknown as Shift);
       setOpeningCash('');
       toast({
         title: 'Shift started',
         description: 'Your shift has been started successfully'
       });
       loadShifts();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error starting shift',
         description: error.message,
@@ -151,13 +151,13 @@ export default function Shifts() {
       const totalSales = salesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0;
 
       const { error } = await supabase
-        .from('shifts')
+        .from('shifts' as any)
         .update({
           end_time: new Date().toISOString(),
           closing_cash: parseFloat(closingCash),
           total_sales: totalSales,
           status: 'completed'
-        })
+        } as any)
         .eq('id', activeShift.id);
 
       if (error) throw error;
