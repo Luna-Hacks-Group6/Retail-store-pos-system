@@ -1,1 +1,4 @@
 project_id = "raarimsxmcqsnamwdfov"
+
+[functions.inventory-predictions]
+verify_jwt = false

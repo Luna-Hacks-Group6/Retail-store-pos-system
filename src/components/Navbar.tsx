@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { StockAlertBadge } from './StockAlertBadge';
 import molabsLogo from '@/assets/molabs-logo.png';
 
 export function Navbar() {
@@ -58,16 +59,19 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Desktop Logout */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={signOut}
-          className="hidden md:flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="hidden lg:inline">Logout</span>
-        </Button>
+        {/* Stock Alerts & Desktop Logout */}
+        <div className="hidden md:flex items-center gap-3">
+          <StockAlertBadge />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden lg:inline">Logout</span>
+          </Button>
+        </div>
 
         {/* Mobile Menu */}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>

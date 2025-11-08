@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Download, TrendingUp, DollarSign, Package, AlertTriangle, CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { InventoryAlerts } from '@/components/InventoryAlerts';
 import {
   Table,
   TableBody,
@@ -27,6 +28,7 @@ export default function Reports() {
   const [dateRange, setDateRange] = useState('today');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [customDateMode, setCustomDateMode] = useState(false);
+  const [rangeMode, setRangeMode] = useState<'day' | 'week' | 'month' | 'year'>('day');
 
   useEffect(() => {
     loadReports();
@@ -34,12 +36,14 @@ export default function Reports() {
 
   const loadReports = async () => {
     const startDate = getStartDate(dateRange);
+    const endDate = getEndDate();
     
     // Sales by payment method
     const { data: salesData } = await supabase
       .from('sales')
       .select('payment_method, total_amount')
       .gte('created_at', startDate)
+      .lte('created_at', endDate)
       .eq('status', 'completed');
 
     const paymentSummary = salesData?.reduce((acc: any, sale) => {
@@ -56,7 +60,8 @@ export default function Reports() {
     const { data: itemsData } = await supabase
       .from('sale_items')
       .select('product_id, quantity, products(name, sku)')
-      .gte('created_at', startDate);
+      .gte('created_at', startDate)
+      .lte('created_at', endDate);
 
     const productSummary = itemsData?.reduce((acc: any, item) => {
       const pid = item.product_id;
@@ -90,6 +95,7 @@ export default function Reports() {
       .from('sales')
       .select('cashier_id, total_amount')
       .gte('created_at', startDate)
+      .lte('created_at', endDate)
       .eq('status', 'completed');
 
     // Get unique cashier IDs
@@ -124,9 +130,28 @@ export default function Reports() {
 
   const getStartDate = (range: string) => {
     if (customDateMode && selectedDate) {
-      const date = new Date(selectedDate);
-      date.setHours(0, 0, 0, 0);
-      return date.toISOString();
+      let startDate: Date;
+      let endDate: Date;
+      
+      switch (rangeMode) {
+        case 'day':
+          startDate = new Date(selectedDate);
+          startDate.setHours(0, 0, 0, 0);
+          return startDate.toISOString();
+        case 'week':
+          startDate = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+          return startDate.toISOString();
+        case 'month':
+          startDate = startOfMonth(selectedDate);
+          return startDate.toISOString();
+        case 'year':
+          startDate = startOfYear(selectedDate);
+          return startDate.toISOString();
+        default:
+          startDate = new Date(selectedDate);
+          startDate.setHours(0, 0, 0, 0);
+          return startDate.toISOString();
+      }
     }
 
     const now = new Date();
@@ -145,10 +170,59 @@ export default function Reports() {
     }
   };
 
+  const getEndDate = () => {
+    if (!customDateMode || !selectedDate) {
+      return new Date().toISOString();
+    }
+
+    let endDate: Date;
+    switch (rangeMode) {
+      case 'day':
+        endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        return endDate.toISOString();
+      case 'week':
+        endDate = endOfWeek(selectedDate, { weekStartsOn: 1 });
+        endDate.setHours(23, 59, 59, 999);
+        return endDate.toISOString();
+      case 'month':
+        endDate = endOfMonth(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        return endDate.toISOString();
+      case 'year':
+        endDate = endOfYear(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        return endDate.toISOString();
+      default:
+        endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        return endDate.toISOString();
+    }
+  };
+
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setCustomDateMode(true);
     setDateRange('custom');
+  };
+
+  const getDateRangeLabel = () => {
+    if (!customDateMode || !selectedDate) return 'Select Range';
+    
+    switch (rangeMode) {
+      case 'day':
+        return format(selectedDate, 'PPP');
+      case 'week':
+        const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+        return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+      case 'month':
+        return format(selectedDate, 'MMMM yyyy');
+      case 'year':
+        return format(selectedDate, 'yyyy');
+      default:
+        return format(selectedDate, 'PPP');
+    }
   };
 
   return (
@@ -193,16 +267,52 @@ export default function Reports() {
             <PopoverTrigger asChild>
               <Button variant={customDateMode ? 'default' : 'outline'} size="sm">
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {customDateMode && selectedDate ? format(selectedDate, 'PPP') : 'Pick Date'}
+                {getDateRangeLabel()}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                initialFocus
-              />
+            <PopoverContent className="w-auto p-4" align="end">
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={rangeMode === 'day' ? 'default' : 'outline'}
+                    onClick={() => setRangeMode('day')}
+                  >
+                    Day
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={rangeMode === 'week' ? 'default' : 'outline'}
+                    onClick={() => setRangeMode('week')}
+                  >
+                    Week
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={rangeMode === 'month' ? 'default' : 'outline'}
+                    onClick={() => setRangeMode('month')}
+                  >
+                    Month
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={rangeMode === 'year' ? 'default' : 'outline'}
+                    onClick={() => setRangeMode('year')}
+                  >
+                    Year
+                  </Button>
+                </div>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Viewing {rangeMode === 'day' ? 'single day' : `entire ${rangeMode}`}
+                </p>
+              </div>
             </PopoverContent>
           </Popover>
         </div>
@@ -213,6 +323,7 @@ export default function Reports() {
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="predictions">AI Predictions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales" className="space-y-6">
@@ -444,6 +555,10 @@ export default function Reports() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="predictions" className="space-y-6">
+          <InventoryAlerts />
         </TabsContent>
       </Tabs>
     </div>
