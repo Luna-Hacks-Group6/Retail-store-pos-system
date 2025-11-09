@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarcodeGenerator } from '@/components/BarcodeGenerator';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 
 export default function NewProduct() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showBarcode, setShowBarcode] = useState(false);
+  const [createdProduct, setCreatedProduct] = useState<any>(null);
   const [formData, setFormData] = useState({
     sku: '',
     barcode: '',
@@ -26,26 +29,87 @@ export default function NewProduct() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from('products').insert({
+      const productData = {
         sku: formData.sku,
-        barcode: formData.barcode || null,
+        barcode: formData.barcode || formData.sku, // Use SKU as barcode if not provided
         name: formData.name,
         unit_cost: parseFloat(formData.unit_cost),
         retail_price: parseFloat(formData.retail_price),
         stock_on_hand: parseInt(formData.stock_on_hand),
         reorder_level: parseInt(formData.reorder_level),
-      });
+      };
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert(productData)
+        .select()
+        .single();
 
       if (error) throw error;
 
+      setCreatedProduct(data);
+      setShowBarcode(true);
       toast.success('Product created successfully');
-      navigate('/products');
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (showBarcode && createdProduct) {
+    return (
+      <div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/products')}
+            className="self-start"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Products
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Product Created</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Print labels or add another product
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-2xl">
+          <BarcodeGenerator
+            value={createdProduct.barcode}
+            productName={createdProduct.name}
+            price={createdProduct.retail_price}
+            sku={createdProduct.sku}
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={() => {
+            setShowBarcode(false);
+            setCreatedProduct(null);
+            setFormData({
+              sku: '',
+              barcode: '',
+              name: '',
+              unit_cost: '',
+              retail_price: '',
+              stock_on_hand: '0',
+              reorder_level: '10',
+            });
+          }}>
+            Add Another Product
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/products')}>
+            Done
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-2 sm:p-4 md:p-6 space-y-4 sm:space-y-6">

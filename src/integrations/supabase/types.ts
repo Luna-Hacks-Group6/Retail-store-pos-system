@@ -591,6 +591,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrement_stock: {
+        Args: { product_id: string; quantity_change: number }
+        Returns: undefined
+      }
       get_user_mfa_status: { Args: { user_id: string }; Returns: boolean }
       has_role: {
         Args: {
@@ -598,6 +602,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_stock: {
+        Args: { product_id: string; quantity_change: number }
+        Returns: undefined
       }
     }
     Enums: {

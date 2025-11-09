@@ -18,6 +18,8 @@ import Customers from "./pages/Customers";
 import Vendors from "./pages/Vendors";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import NewPurchaseOrder from "./pages/NewPurchaseOrder";
+import ReceivePurchaseOrder from "./pages/ReceivePurchaseOrder";
+import MobileCashier from "./pages/MobileCashier";
 import Reports from "./pages/Reports";
 import Returns from "./pages/Returns";
 import Shifts from "./pages/Shifts";
@@ -56,6 +58,8 @@ const App = () => (
                         <Route path="/vendors" element={<Vendors />} />
                         <Route path="/purchase-orders" element={<PurchaseOrders />} />
                         <Route path="/purchase-orders/new" element={<NewPurchaseOrder />} />
+                        <Route path="/purchase-orders/:id/receive" element={<ReceivePurchaseOrder />} />
+                        <Route path="/mobile-cashier" element={<MobileCashier />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/returns" element={<Returns />} />
                         <Route path="/shifts" element={<Shifts />} />

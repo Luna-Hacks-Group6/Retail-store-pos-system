@@ -63,7 +63,59 @@ export default function PurchaseOrders() {
       toast.error(error.message);
     } else {
       toast.success(`PO ${newStatus}`);
+      
+      // If status is being changed to 'sent', send email to vendor
+      if (newStatus === 'sent') {
+        sendPOEmail(id);
+      }
+      
       loadOrders();
+    }
+  };
+
+  const sendPOEmail = async (poId: string) => {
+    try {
+      // Get PO details with items
+      const { data: po } = await supabase
+        .from('purchase_orders')
+        .select('*, vendors(name, email)')
+        .eq('id', poId)
+        .single();
+
+      if (!po || !po.vendors?.email) {
+        toast.error('Vendor email not found');
+        return;
+      }
+
+      const { data: items } = await supabase
+        .from('po_items')
+        .select('*, products(name)')
+        .eq('po_id', poId);
+
+      if (!items) return;
+
+      const itemsForEmail = items.map(item => ({
+        product_name: item.products?.name || 'Unknown',
+        quantity: item.quantity,
+        unit_cost: item.unit_cost,
+      }));
+
+      const { error } = await supabase.functions.invoke('send-po-email', {
+        body: {
+          poId: po.id,
+          vendorEmail: po.vendors.email,
+          vendorName: po.vendors.name,
+          poNumber: po.po_number,
+          totalAmount: po.total_amount,
+          items: itemsForEmail,
+        },
+      });
+
+      if (error) throw error;
+      toast.success('Purchase order sent to vendor via email');
+    } catch (error: any) {
+      console.error('Error sending PO email:', error);
+      toast.error('Failed to send email to vendor');
     }
   };
 

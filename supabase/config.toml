@@ -2,3 +2,9 @@ project_id = "raarimsxmcqsnamwdfov"
 
 [functions.inventory-predictions]
 verify_jwt = false
+
+[functions.send-po-email]
+verify_jwt = false
+
+[functions.send-inventory-alerts]
+verify_jwt = false
