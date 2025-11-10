@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.send-inventory-alerts]
 verify_jwt = false
+
+[functions.send-scheduled-reports]
+verify_jwt = false
