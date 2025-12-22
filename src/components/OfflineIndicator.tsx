@@ -1,16 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Wifi, WifiOff } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 export const OfflineIndicator = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showAlert, setShowAlert] = useState(!navigator.onLine);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       setShowAlert(true);
-      setTimeout(() => setShowAlert(false), 3000);
+      setIsSyncing(true);
+      // Simulate sync completion
+      setTimeout(() => {
+        setIsSyncing(false);
+        setTimeout(() => setShowAlert(false), 2000);
+      }, 1500);
     };
 
     const handleOffline = () => {
@@ -27,26 +34,61 @@ export const OfflineIndicator = () => {
     };
   }, []);
 
+  const handleDismiss = useCallback(() => {
+    if (isOnline) {
+      setShowAlert(false);
+    }
+  }, [isOnline]);
+
   if (!showAlert) return null;
 
   return (
     <Alert 
-      className={`fixed top-4 right-4 z-50 w-auto max-w-sm shadow-lg transition-all ${
+      className={`fixed top-4 right-4 z-50 w-auto max-w-sm shadow-lg transition-all duration-300 animate-fade-in ${
         isOnline 
-          ? 'border-green-500 bg-green-50 dark:bg-green-950' 
-          : 'border-orange-500 bg-orange-50 dark:bg-orange-950'
+          ? 'border-accent bg-accent/10' 
+          : 'border-warning bg-warning/10'
       }`}
+      role="status"
+      aria-live="polite"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {isOnline ? (
-          <Wifi className="h-4 w-4 text-green-600 dark:text-green-400" />
+          isSyncing ? (
+            <RefreshCw className="h-4 w-4 text-accent animate-spin" />
+          ) : (
+            <Wifi className="h-4 w-4 text-accent" />
+          )
         ) : (
-          <WifiOff className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          <WifiOff className="h-4 w-4 text-warning offline-pulse" />
         )}
-        <AlertDescription className={isOnline ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'}>
-          {isOnline ? 'Back online - syncing data...' : 'Working offline - data will sync when connected'}
+        <AlertDescription className={`flex-1 text-sm font-medium ${
+          isOnline ? 'text-accent' : 'text-warning'
+        }`}>
+          {isOnline 
+            ? isSyncing 
+              ? 'Back online - syncing data...' 
+              : 'Connected - data synced!'
+            : 'Working offline - data saves locally'
+          }
         </AlertDescription>
+        {isOnline && !isSyncing && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleDismiss}
+            className="h-6 w-6 p-0 hover:bg-accent/20"
+          >
+            <span className="sr-only">Dismiss</span>
+            ×
+          </Button>
+        )}
       </div>
+      {!isOnline && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Your changes will sync automatically when connected.
+        </p>
+      )}
     </Alert>
   );
 };
