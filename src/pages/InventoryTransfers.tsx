@@ -61,15 +61,15 @@ export default function InventoryTransfers() {
   const loadData = async () => {
     const [transfersRes, locationsRes, productsRes] = await Promise.all([
       supabase
-        .from('inventory_transfers')
+        .from('inventory_transfers' as any)
         .select('*, products(name, sku), from_location:locations!from_location_id(name), to_location:locations!to_location_id(name)')
         .order('created_at', { ascending: false }),
-      supabase.from('locations').select('id, name').order('name'),
+      supabase.from('locations' as any).select('id, name').order('name'),
       supabase.from('products').select('id, name, sku').order('name'),
     ]);
 
-    setTransfers(transfersRes.data || []);
-    setLocations(locationsRes.data || []);
+    setTransfers((transfersRes.data as unknown as Transfer[]) || []);
+    setLocations((locationsRes.data as unknown as Location[]) || []);
     setProducts(productsRes.data || []);
   };
 
@@ -82,7 +82,7 @@ export default function InventoryTransfers() {
     }
 
     const { error } = await supabase
-      .from('inventory_transfers')
+      .from('inventory_transfers' as any)
       .insert([{
         ...formData,
         created_by: user?.id,
@@ -115,41 +115,41 @@ export default function InventoryTransfers() {
     try {
       // Update from location inventory
       const { data: fromInv } = await supabase
-        .from('location_inventory')
+        .from('location_inventory' as any)
         .select('quantity')
         .eq('product_id', transfer.product_id)
         .eq('location_id', transfer.from_location_id)
-        .single();
+        .maybeSingle();
 
-      if (!fromInv || fromInv.quantity < transfer.quantity) {
+      if (!fromInv || (fromInv as any).quantity < transfer.quantity) {
         toast.error('Insufficient stock at source location');
         return;
       }
 
       // Decrease from location
       await supabase
-        .from('location_inventory')
-        .update({ quantity: fromInv.quantity - transfer.quantity })
+        .from('location_inventory' as any)
+        .update({ quantity: (fromInv as any).quantity - transfer.quantity })
         .eq('product_id', transfer.product_id)
         .eq('location_id', transfer.from_location_id);
 
       // Increase to location (or insert if doesn't exist)
       const { data: toInv } = await supabase
-        .from('location_inventory')
+        .from('location_inventory' as any)
         .select('quantity')
         .eq('product_id', transfer.product_id)
         .eq('location_id', transfer.to_location_id)
-        .single();
+        .maybeSingle();
 
       if (toInv) {
         await supabase
-          .from('location_inventory')
-          .update({ quantity: toInv.quantity + transfer.quantity })
+          .from('location_inventory' as any)
+          .update({ quantity: (toInv as any).quantity + transfer.quantity })
           .eq('product_id', transfer.product_id)
           .eq('location_id', transfer.to_location_id);
       } else {
         await supabase
-          .from('location_inventory')
+          .from('location_inventory' as any)
           .insert([{
             product_id: transfer.product_id,
             location_id: transfer.to_location_id,
@@ -159,7 +159,7 @@ export default function InventoryTransfers() {
 
       // Mark transfer as completed
       const { error } = await supabase
-        .from('inventory_transfers')
+        .from('inventory_transfers' as any)
         .update({ status: 'completed', completed_at: new Date().toISOString() })
         .eq('id', transfer.id);
 
@@ -312,15 +312,15 @@ export default function InventoryTransfers() {
                 <TableRow key={transfer.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{transfer.products.name}</div>
-                      <div className="text-sm text-muted-foreground">{transfer.products.sku}</div>
+                      <div className="font-medium">{transfer.products?.name || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">{transfer.products?.sku || ''}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{transfer.from_location.name}</TableCell>
+                  <TableCell>{transfer.from_location?.name || 'N/A'}</TableCell>
                   <TableCell className="text-center">
                     <ArrowRight className="h-4 w-4 mx-auto" />
                   </TableCell>
-                  <TableCell>{transfer.to_location.name}</TableCell>
+                  <TableCell>{transfer.to_location?.name || 'N/A'}</TableCell>
                   <TableCell>{transfer.quantity}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusColor(transfer.status)}>

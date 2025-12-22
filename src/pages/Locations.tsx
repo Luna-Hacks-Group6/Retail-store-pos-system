@@ -37,12 +37,17 @@ export default function Locations() {
   }, []);
 
   const loadLocations = async () => {
-    const { data } = await supabase
-      .from('locations')
+    const { data, error } = await supabase
+      .from('locations' as any)
       .select('*')
       .order('is_primary', { ascending: false })
       .order('name');
-    setLocations(data || []);
+    
+    if (error) {
+      toast.error('Failed to load locations');
+      return;
+    }
+    setLocations((data as unknown as Location[]) || []);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +55,7 @@ export default function Locations() {
     
     if (editingId) {
       const { error } = await supabase
-        .from('locations')
+        .from('locations' as any)
         .update(formData)
         .eq('id', editingId);
       
@@ -63,7 +68,7 @@ export default function Locations() {
       }
     } else {
       const { error } = await supabase
-        .from('locations')
+        .from('locations' as any)
         .insert([formData]);
       
       if (error) {
@@ -97,7 +102,7 @@ export default function Locations() {
     if (!confirm('Are you sure you want to delete this location?')) return;
     
     const { error } = await supabase
-      .from('locations')
+      .from('locations' as any)
       .delete()
       .eq('id', id);
     
