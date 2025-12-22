@@ -13,6 +13,32 @@ export default {
       },
     },
     extend: {
+      /* System Font Stack - Zero External Dependencies */
+      fontFamily: {
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Segoe UI'",
+          "Roboto",
+          "'Helvetica Neue'",
+          "Arial",
+          "'Noto Sans'",
+          "sans-serif",
+          "'Apple Color Emoji'",
+          "'Segoe UI Emoji'",
+          "'Segoe UI Symbol'",
+          "'Noto Color Emoji'",
+        ],
+        mono: [
+          "ui-monospace",
+          "SFMono-Regular",
+          "'SF Mono'",
+          "Menlo",
+          "Consolas",
+          "'Liberation Mono'",
+          "monospace",
+        ],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -39,6 +65,14 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -62,6 +96,21 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      /* Touch-friendly spacing */
+      spacing: {
+        "touch": "44px",
+        "safe-top": "env(safe-area-inset-top)",
+        "safe-bottom": "env(safe-area-inset-bottom)",
+        "safe-left": "env(safe-area-inset-left)",
+        "safe-right": "env(safe-area-inset-right)",
+      },
+      /* Minimum touch target sizes */
+      minHeight: {
+        "touch": "44px",
+      },
+      minWidth: {
+        "touch": "44px",
       },
       keyframes: {
         "accordion-down": {
@@ -90,6 +139,16 @@ export default {
             transform: "translateY(0)"
           }
         },
+        "fade-out": {
+          "0%": {
+            opacity: "1",
+            transform: "translateY(0)"
+          },
+          "100%": {
+            opacity: "0",
+            transform: "translateY(10px)"
+          }
+        },
         "slide-in-left": {
           "0%": {
             transform: "translateX(-100%)",
@@ -110,13 +169,32 @@ export default {
             opacity: "1"
           }
         },
+        "pulse-slow": {
+          "0%, 100%": {
+            opacity: "1"
+          },
+          "50%": {
+            opacity: "0.5"
+          }
+        },
+        "shimmer": {
+          "0%": {
+            backgroundPosition: "200% 0"
+          },
+          "100%": {
+            backgroundPosition: "-200% 0"
+          }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.5s ease-out",
-        "slide-in-left": "slide-in-left 0.8s ease-out",
-        "slide-in-right": "slide-in-right 0.8s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+        "fade-out": "fade-out 0.3s ease-out",
+        "slide-in-left": "slide-in-left 0.3s ease-out",
+        "slide-in-right": "slide-in-right 0.3s ease-out",
+        "pulse-slow": "pulse-slow 2s ease-in-out infinite",
+        "shimmer": "shimmer 1.5s ease-in-out infinite",
       },
     },
   },
