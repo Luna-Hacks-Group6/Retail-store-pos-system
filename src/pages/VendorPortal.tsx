@@ -58,7 +58,7 @@ export default function VendorPortal() {
       .from('vendors')
       .select('id')
       .eq('email', user.email)
-      .single();
+      .maybeSingle();
 
     if (!vendor) {
       toast.error('No vendor account found for this email');
@@ -78,12 +78,12 @@ export default function VendorPortal() {
 
     // Load invoices
     const { data: invs } = await supabase
-      .from('vendor_invoices')
+      .from('vendor_invoices' as any)
       .select('*')
       .eq('vendor_id', vendor.id)
       .order('created_at', { ascending: false });
 
-    setInvoices(invs || []);
+    setInvoices((invs as unknown as Invoice[]) || []);
   };
 
   const handleSubmitInvoice = async (e: React.FormEvent) => {
@@ -95,7 +95,7 @@ export default function VendorPortal() {
     }
 
     const { error } = await supabase
-      .from('vendor_invoices')
+      .from('vendor_invoices' as any)
       .insert([{
         ...invoiceForm,
         po_id: selectedPO,
