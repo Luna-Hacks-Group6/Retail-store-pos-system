@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Search, Trash2, ShoppingCart, User, Plus, Minus, Package } from 'lucide-react';
+import { Search, Trash2, ShoppingCart, Plus, Minus, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -15,7 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -26,6 +25,8 @@ import {
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { Receipt } from '@/components/Receipt';
 import { Badge } from '@/components/ui/badge';
+import { HybridPaymentPanel } from '@/components/HybridPaymentPanel';
+import { useHybridPayment } from '@/hooks/useHybridPayment';
 
 interface Product {
   id: string;
@@ -55,12 +56,19 @@ export default function Sales() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('walk-in');
-  const [mpesaPhone, setMpesaPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [completedSaleId, setCompletedSaleId] = useState<string | null>(null);
+  const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  const getTotalAmount = () => {
+    const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+    const taxAmount = cart.reduce((sum, item) => sum + (item.lineTotal * item.tax_rate) / 100, 0);
+    return subtotal + taxAmount;
+  };
+  
+  const payment = useHybridPayment(currentSaleId, getTotalAmount());
 
   useEffect(() => {
     loadProducts();
@@ -166,46 +174,62 @@ export default function Sales() {
     };
   };
 
+  // Create a pending sale when items are added to cart
+  const createPendingSale = async () => {
+    if (!user?.id || currentSaleId) return null;
+    
+    const currentTotals = calculateTotals();
+    const { data: saleData, error: saleError } = await supabase
+      .from('sales')
+      .insert({
+        cashier_id: user.id,
+        customer_id: selectedCustomer === 'walk-in' ? null : selectedCustomer,
+        subtotal: parseFloat(currentTotals.subtotal),
+        tax_amount: parseFloat(currentTotals.taxAmount),
+        total_amount: parseFloat(currentTotals.total),
+        payment_method: 'hybrid',
+        status: 'pending',
+        payment_status: 'pending',
+        cash_amount: 0,
+        mpesa_amount: 0,
+      })
+      .select()
+      .single();
+
+    if (saleError) {
+      console.error('Failed to create pending sale:', saleError);
+      return null;
+    }
+    
+    setCurrentSaleId(saleData.id);
+    return saleData.id;
+  };
+
   const completeSale = async () => {
     if (cart.length === 0) {
       toast.error('Cart is empty');
       return;
     }
 
-    if (paymentMethod === 'mpesa') {
-      if (!mpesaPhone) {
-        toast.error('Please enter MPESA phone number');
-        return;
-      }
-      if (!/^254[0-9]{9}$/.test(mpesaPhone)) {
-        toast.error('Invalid phone number. Use format: 254XXXXXXXXX');
-        return;
-      }
+    if (!payment.isFullyPaid) {
+      toast.error('Payment not complete');
+      return;
     }
 
     setLoading(true);
     try {
-      const totals = calculateTotals();
+      let saleId = currentSaleId;
+      
+      // Create sale if doesn't exist
+      if (!saleId) {
+        saleId = await createPendingSale();
+        if (!saleId) throw new Error('Failed to create sale');
+      }
 
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          cashier_id: user?.id!,
-          customer_id: selectedCustomer === 'walk-in' ? null : selectedCustomer,
-          subtotal: parseFloat(totals.subtotal),
-          tax_amount: parseFloat(totals.taxAmount),
-          total_amount: parseFloat(totals.total),
-          payment_method: paymentMethod,
-          status: paymentMethod === 'mpesa' ? 'pending' : 'completed',
-        })
-        .select()
-        .single();
-
-      if (saleError) throw saleError;
-
+      // Insert sale items
       for (const item of cart) {
         const { error: itemError } = await supabase.from('sale_items').insert({
-          sale_id: saleData.id,
+          sale_id: saleId,
           product_id: item.id,
           quantity: item.quantity,
           unit_price: item.retail_price,
@@ -215,6 +239,7 @@ export default function Sales() {
 
         if (itemError) throw itemError;
 
+        // Update stock
         const { error: stockError } = await supabase
           .from('products')
           .update({ stock_on_hand: item.stock_on_hand - item.quantity })
@@ -223,25 +248,26 @@ export default function Sales() {
         if (stockError) throw stockError;
       }
 
-      if (paymentMethod === 'mpesa') {
-        const { error: mpesaError } = await supabase
-          .from('mpesa_transactions')
-          .insert({
-            sale_id: saleData.id,
-            transaction_code: `TMP${Date.now()}`,
-            phone_number: mpesaPhone,
-            amount: parseFloat(totals.total),
-            status: 'pending',
-          });
+      // Update sale with final payment details
+      const paymentMethod = payment.cashAmount > 0 && payment.mpesaAmount > 0 
+        ? 'hybrid' 
+        : payment.cashAmount > 0 ? 'cash' : 'mpesa';
 
-        if (mpesaError) throw mpesaError;
+      const { error: updateError } = await supabase
+        .from('sales')
+        .update({
+          status: 'completed',
+          payment_status: 'paid',
+          payment_method: paymentMethod,
+          cash_amount: payment.cashAmount,
+          mpesa_amount: payment.mpesaAmount,
+          change_amount: payment.changeAmount,
+        })
+        .eq('id', saleId);
 
-        toast.success('Sale pending MPESA confirmation');
-        toast.info(`Please pay KSh ${totals.total} to the till/paybill number`);
-      } else {
-        toast.success('Sale completed successfully!');
-      }
+      if (updateError) throw updateError;
 
+      // Update customer if selected
       if (selectedCustomer && selectedCustomer !== 'walk-in') {
         const { data: customerData } = await supabase
           .from('customers')
@@ -253,7 +279,7 @@ export default function Sales() {
           await supabase
             .from('customers')
             .update({
-              total_purchases: Number(customerData.total_purchases) + parseFloat(totals.total),
+              total_purchases: Number(customerData.total_purchases) + getTotalAmount(),
               purchase_count: customerData.purchase_count + 1,
               is_frequent: customerData.purchase_count + 1 >= 5,
             })
@@ -261,10 +287,12 @@ export default function Sales() {
         }
       }
 
-      setCompletedSaleId(saleData.id);
+      toast.success('Sale completed successfully!');
+      setCompletedSaleId(saleId);
       setCart([]);
       setSelectedCustomer('walk-in');
-      setMpesaPhone('');
+      setCurrentSaleId(null);
+      payment.reset();
       loadProducts();
     } catch (error: any) {
       console.error('Error completing sale:', error);
@@ -274,7 +302,20 @@ export default function Sales() {
     }
   };
 
-  const totals = calculateTotals();
+  const handleMpesaPayment = async (phone: string, amount: number) => {
+    let saleId = currentSaleId;
+    
+    // Create pending sale if doesn't exist
+    if (!saleId && cart.length > 0) {
+      saleId = await createPendingSale();
+      if (!saleId) {
+        toast.error('Failed to create sale');
+        return false;
+      }
+    }
+    
+    return payment.initiateSTKPush(phone, amount);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background p-4 sm:p-6">
@@ -455,75 +496,21 @@ export default function Sales() {
                         </Select>
                       </div>
 
-                      <div className="space-y-2 py-3 bg-muted/30 rounded-lg px-3">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal:</span>
-                          <span className="font-semibold">KSh {totals.subtotal}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">VAT (16%):</span>
-                          <span className="font-semibold">KSh {totals.taxAmount}</span>
-                        </div>
-                        <div className="flex justify-between text-xl font-bold pt-2 border-t">
-                          <span>Total:</span>
-                          <span className="text-primary">KSh {totals.total}</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <Label className="text-xs font-semibold text-muted-foreground">PAYMENT METHOD</Label>
-                        <RadioGroup
-                          value={paymentMethod}
-                          onValueChange={(value) => setPaymentMethod(value as 'cash' | 'mpesa')}
-                          className="grid grid-cols-2 gap-2"
-                        >
-                          <div>
-                            <RadioGroupItem value="cash" id="cash" className="peer sr-only" />
-                            <Label
-                              htmlFor="cash"
-                              className="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer hover:border-primary transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
-                            >
-                              Cash
-                            </Label>
-                          </div>
-                          <div>
-                            <RadioGroupItem value="mpesa" id="mpesa" className="peer sr-only" />
-                            <Label
-                              htmlFor="mpesa"
-                              className="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer hover:border-primary transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
-                            >
-                              M-PESA
-                            </Label>
-                          </div>
-                        </RadioGroup>
-
-                        {paymentMethod === 'mpesa' && (
-                          <div className="animate-fade-in">
-                            <Label htmlFor="mpesa_phone" className="text-sm">M-PESA Phone Number</Label>
-                            <Input
-                              id="mpesa_phone"
-                              placeholder="254700000000"
-                              value={mpesaPhone}
-                              onChange={(e) => setMpesaPhone(e.target.value.replace(/\D/g, ''))}
-                              pattern="254[0-9]{9}"
-                              maxLength={12}
-                              className="mt-1"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Format: 254XXXXXXXXX
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <Button
-                        className="w-full h-14 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                        size="lg"
-                        onClick={completeSale}
-                        disabled={loading}
-                      >
-                        {loading ? 'Processing...' : `Complete Sale - KSh ${totals.total}`}
-                      </Button>
+                      {/* Hybrid Payment Panel */}
+                      <HybridPaymentPanel
+                        totalAmount={getTotalAmount()}
+                        cashAmount={payment.cashAmount}
+                        mpesaAmount={payment.mpesaAmount}
+                        remainingAmount={payment.remainingAmount}
+                        changeAmount={payment.changeAmount}
+                        status={payment.status}
+                        mpesaPending={payment.mpesaPending}
+                        onCashAmountChange={payment.setCashAmount}
+                        onMpesaPayment={handleMpesaPayment}
+                        onCompleteSale={completeSale}
+                        isFullyPaid={payment.isFullyPaid}
+                        disabled={loading || cart.length === 0}
+                      />
                     </div>
                   </>
                 )}
