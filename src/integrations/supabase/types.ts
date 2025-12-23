@@ -134,8 +134,12 @@ export type Database = {
       mpesa_transactions: {
         Row: {
           amount: number
+          callback_data: Json | null
+          callback_received: boolean | null
+          checkout_request_id: string | null
           created_at: string | null
           id: string
+          merchant_request_id: string | null
           mpesa_receipt_number: string | null
           phone_number: string
           result_desc: string | null
@@ -146,8 +150,12 @@ export type Database = {
         }
         Insert: {
           amount: number
+          callback_data?: Json | null
+          callback_received?: boolean | null
+          checkout_request_id?: string | null
           created_at?: string | null
           id?: string
+          merchant_request_id?: string | null
           mpesa_receipt_number?: string | null
           phone_number: string
           result_desc?: string | null
@@ -158,8 +166,12 @@ export type Database = {
         }
         Update: {
           amount?: number
+          callback_data?: Json | null
+          callback_received?: boolean | null
+          checkout_request_id?: string | null
           created_at?: string | null
           id?: string
+          merchant_request_id?: string | null
           mpesa_receipt_number?: string | null
           phone_number?: string
           result_desc?: string | null
@@ -430,33 +442,45 @@ export type Database = {
       }
       sales: {
         Row: {
+          cash_amount: number | null
           cashier_id: string
+          change_amount: number | null
           created_at: string | null
           customer_id: string | null
           id: string
+          mpesa_amount: number | null
           payment_method: string
+          payment_status: string
           status: string | null
           subtotal: number
           tax_amount: number
           total_amount: number
         }
         Insert: {
+          cash_amount?: number | null
           cashier_id: string
+          change_amount?: number | null
           created_at?: string | null
           customer_id?: string | null
           id?: string
+          mpesa_amount?: number | null
           payment_method: string
+          payment_status?: string
           status?: string | null
           subtotal: number
           tax_amount: number
           total_amount: number
         }
         Update: {
+          cash_amount?: number | null
           cashier_id?: string
+          change_amount?: number | null
           created_at?: string | null
           customer_id?: string | null
           id?: string
+          mpesa_amount?: number | null
           payment_method?: string
+          payment_status?: string
           status?: string | null
           subtotal?: number
           tax_amount?: number

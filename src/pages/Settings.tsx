@@ -113,11 +113,24 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle>MPESA Configuration</CardTitle>
-            <CardDescription>Payment gateway settings</CardDescription>
+            <CardDescription>Payment gateway settings for STK Push</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="mpesa_paybill">Paybill Number</Label>
+              <Label htmlFor="mpesa_shortcode">Till Number / Shortcode *</Label>
+              <Input
+                id="mpesa_shortcode"
+                value={settings.mpesa_shortcode || ''}
+                onChange={(e) => updateSetting('mpesa_shortcode', e.target.value)}
+                placeholder="Enter your M-Pesa Till Number (e.g., 174379)"
+                disabled={role !== 'admin'}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This is your M-Pesa Till Number used for STK Push payments
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="mpesa_paybill">Paybill Number (Optional)</Label>
               <Input
                 id="mpesa_paybill"
                 value={settings.mpesa_paybill || ''}
@@ -126,19 +139,9 @@ export default function Settings() {
                 disabled={role !== 'admin'}
               />
             </div>
-            <div>
-              <Label htmlFor="mpesa_till_number">Till Number</Label>
-              <Input
-                id="mpesa_till_number"
-                value={settings.mpesa_till_number || ''}
-                onChange={(e) => updateSetting('mpesa_till_number', e.target.value)}
-                placeholder="7890123"
-                disabled={role !== 'admin'}
-              />
-            </div>
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> For full MPESA STK Push integration, configure your Daraja API credentials in the backend environment variables.
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Important:</strong> The Till Number above is used for automatic STK Push payments. Make sure it matches your Safaricom Daraja API configuration.
               </p>
             </div>
           </CardContent>
