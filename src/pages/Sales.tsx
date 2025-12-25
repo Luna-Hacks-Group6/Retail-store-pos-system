@@ -175,7 +175,7 @@ export default function Sales() {
   };
 
   // Create a pending sale when items are added to cart
-  const createPendingSale = async () => {
+  const createPendingSale = async (paymentMethod: 'cash' | 'mpesa' | 'hybrid' = 'cash') => {
     if (!user?.id || currentSaleId) return null;
     
     const currentTotals = calculateTotals();
@@ -187,7 +187,7 @@ export default function Sales() {
         subtotal: parseFloat(currentTotals.subtotal),
         tax_amount: parseFloat(currentTotals.taxAmount),
         total_amount: parseFloat(currentTotals.total),
-        payment_method: 'hybrid',
+        payment_method: paymentMethod,
         status: 'pending',
         payment_status: 'pending',
         cash_amount: 0,
@@ -198,6 +198,7 @@ export default function Sales() {
 
     if (saleError) {
       console.error('Failed to create pending sale:', saleError);
+      toast.error('Failed to create sale: ' + saleError.message);
       return null;
     }
     
@@ -305,16 +306,30 @@ export default function Sales() {
   const handleMpesaPayment = async (phone: string, amount: number) => {
     let saleId = currentSaleId;
     
-    // Create pending sale if doesn't exist
+    // Create pending sale if doesn't exist - use mpesa as initial method
     if (!saleId && cart.length > 0) {
-      saleId = await createPendingSale();
+      saleId = await createPendingSale('mpesa');
       if (!saleId) {
-        toast.error('Failed to create sale');
         return false;
       }
     }
     
     return payment.initiateSTKPush(phone, amount);
+  };
+
+  const handleCashPayment = async (amount: number) => {
+    let saleId = currentSaleId;
+    
+    // Create pending sale if doesn't exist - use cash as initial method
+    if (!saleId && cart.length > 0) {
+      saleId = await createPendingSale('cash');
+      if (!saleId) {
+        return false;
+      }
+    }
+    
+    payment.setCashAmount(amount);
+    return true;
   };
 
   return (
@@ -505,7 +520,7 @@ export default function Sales() {
                         changeAmount={payment.changeAmount}
                         status={payment.status}
                         mpesaPending={payment.mpesaPending}
-                        onCashAmountChange={payment.setCashAmount}
+                        onCashAmountChange={handleCashPayment}
                         onMpesaPayment={handleMpesaPayment}
                         onCompleteSale={completeSale}
                         isFullyPaid={payment.isFullyPaid}
