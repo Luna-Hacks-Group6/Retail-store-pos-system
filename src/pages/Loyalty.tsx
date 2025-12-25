@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Award, Gift, TrendingUp, Users, Star, Search } from 'lucide-react';
+import { Award, Gift, TrendingUp, Users, Star, Search, RefreshCw } from 'lucide-react';
 
 interface LoyaltyMember {
   id: string;
@@ -21,27 +21,83 @@ interface LoyaltyMember {
   };
 }
 
+interface LoyaltyTier {
+  name: string;
+  min: number;
+  color: string;
+  pointsMultiplier: number;
+}
+
 export default function Loyalty() {
   const [members, setMembers] = useState<LoyaltyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const { toast } = useToast();
-
-  const tiers = [
+  const [tiers, setTiers] = useState<LoyaltyTier[]>([
     { name: 'Bronze', min: 0, color: 'bg-amber-700', pointsMultiplier: 1 },
     { name: 'Silver', min: 50000, color: 'bg-gray-400', pointsMultiplier: 1.5 },
     { name: 'Gold', min: 150000, color: 'bg-yellow-500', pointsMultiplier: 2 },
     { name: 'Platinum', min: 300000, color: 'bg-purple-500', pointsMultiplier: 3 }
-  ];
+  ]);
+  const [loyaltySettings, setLoyaltySettings] = useState({
+    pointsRate: 1,
+    pointsPerAmount: 100
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
+    loadLoyaltySettings();
     loadLoyaltyMembers();
+    
+    // Subscribe to real-time updates for loyalty_members
+    const channel = supabase
+      .channel('loyalty-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'loyalty_members'
+        },
+        (payload) => {
+          console.log('Loyalty update received:', payload);
+          loadLoyaltyMembers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const loadLoyaltySettings = async () => {
+    const { data } = await supabase.from('settings').select('key, value');
+    
+    if (data) {
+      const settingsMap: Record<string, string> = {};
+      data.forEach((s) => {
+        settingsMap[s.key] = s.value;
+      });
+
+      // Update tiers based on settings
+      setTiers([
+        { name: 'Bronze', min: 0, color: 'bg-amber-700', pointsMultiplier: 1 },
+        { name: 'Silver', min: parseFloat(settingsMap.loyalty_tier_silver_min) || 50000, color: 'bg-gray-400', pointsMultiplier: 1.5 },
+        { name: 'Gold', min: parseFloat(settingsMap.loyalty_tier_gold_min) || 150000, color: 'bg-yellow-500', pointsMultiplier: 2 },
+        { name: 'Platinum', min: parseFloat(settingsMap.loyalty_tier_platinum_min) || 300000, color: 'bg-purple-500', pointsMultiplier: 3 }
+      ]);
+
+      setLoyaltySettings({
+        pointsRate: parseFloat(settingsMap.loyalty_points_rate) || 1,
+        pointsPerAmount: parseFloat(settingsMap.loyalty_points_per_amount) || 100
+      });
+    }
+  };
 
   const loadLoyaltyMembers = async () => {
     try {
       const { data, error } = await supabase
-        .from('loyalty_members' as any)
+        .from('loyalty_members')
         .select('*')
         .order('points', { ascending: false });
 
@@ -91,9 +147,10 @@ export default function Loyalty() {
       const member = members.find(m => m.id === memberId);
       if (!member) return;
 
+      const newPoints = member.points + points;
       const { error } = await supabase
-        .from('loyalty_members' as any)
-        .update({ points: member.points + points } as any)
+        .from('loyalty_members')
+        .update({ points: newPoints })
         .eq('id', memberId);
 
       if (error) throw error;
@@ -125,9 +182,10 @@ export default function Loyalty() {
         return;
       }
 
+      const newPoints = member.points - points;
       const { error } = await supabase
-        .from('loyalty_members' as any)
-        .update({ points: member.points - points } as any)
+        .from('loyalty_members')
+        .update({ points: newPoints })
         .eq('id', memberId);
 
       if (error) throw error;
@@ -161,9 +219,17 @@ export default function Loyalty() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Customer Loyalty Program</h1>
-        <p className="text-muted-foreground">Reward your best customers and track loyalty points</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Customer Loyalty Program</h1>
+          <p className="text-muted-foreground">
+            Reward your best customers • {loyaltySettings.pointsRate} point(s) per KSh {loyaltySettings.pointsPerAmount} spent
+          </p>
+        </div>
+        <Button variant="outline" onClick={loadLoyaltyMembers} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -283,7 +349,7 @@ export default function Loyalty() {
                 ) : filteredMembers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No loyalty members found
+                      No loyalty members found. Members are added automatically when customers make purchases.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -298,7 +364,7 @@ export default function Loyalty() {
                           {member.customers?.phone}
                         </TableCell>
                         <TableCell className="font-semibold text-primary">
-                          {member.points} pts
+                          {member.points.toLocaleString()} pts
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           KSh {member.total_spent.toLocaleString('en-KE', { minimumFractionDigits: 2 })}

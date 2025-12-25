@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings as SettingsIcon, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -147,7 +147,98 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        {/* Loyalty Program Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Loyalty Program
+            </CardTitle>
+            <CardDescription>Configure customer loyalty points and tiers</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="loyalty_points_rate">Points Earned</Label>
+                <Input
+                  id="loyalty_points_rate"
+                  type="number"
+                  min="1"
+                  value={settings.loyalty_points_rate || '1'}
+                  onChange={(e) => updateSetting('loyalty_points_rate', e.target.value)}
+                  disabled={role !== 'admin'}
+                />
+              </div>
+              <div>
+                <Label htmlFor="loyalty_points_per_amount">Per KES Spent</Label>
+                <Input
+                  id="loyalty_points_per_amount"
+                  type="number"
+                  min="1"
+                  value={settings.loyalty_points_per_amount || '100'}
+                  onChange={(e) => updateSetting('loyalty_points_per_amount', e.target.value)}
+                  disabled={role !== 'admin'}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Customers earn {settings.loyalty_points_rate || '1'} point(s) for every KSh {settings.loyalty_points_per_amount || '100'} spent
+            </p>
+
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-semibold mb-3 block">Tier Thresholds (Total Spend in KES)</Label>
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded-full bg-gray-400" />
+                  <Label htmlFor="loyalty_tier_silver_min" className="w-20">Silver</Label>
+                  <Input
+                    id="loyalty_tier_silver_min"
+                    type="number"
+                    min="0"
+                    value={settings.loyalty_tier_silver_min || '50000'}
+                    onChange={(e) => updateSetting('loyalty_tier_silver_min', e.target.value)}
+                    disabled={role !== 'admin'}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded-full bg-yellow-500" />
+                  <Label htmlFor="loyalty_tier_gold_min" className="w-20">Gold</Label>
+                  <Input
+                    id="loyalty_tier_gold_min"
+                    type="number"
+                    min="0"
+                    value={settings.loyalty_tier_gold_min || '150000'}
+                    onChange={(e) => updateSetting('loyalty_tier_gold_min', e.target.value)}
+                    disabled={role !== 'admin'}
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 rounded-full bg-purple-500" />
+                  <Label htmlFor="loyalty_tier_platinum_min" className="w-20">Platinum</Label>
+                  <Input
+                    id="loyalty_tier_platinum_min"
+                    type="number"
+                    min="0"
+                    value={settings.loyalty_tier_platinum_min || '300000'}
+                    onChange={(e) => updateSetting('loyalty_tier_platinum_min', e.target.value)}
+                    disabled={role !== 'admin'}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm">
+                <strong>How it works:</strong> When a customer makes a payment (Cash or M-Pesa), they automatically earn loyalty points based on the amount spent. Points and tier are calculated in real-time.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader>
             <CardTitle>Receipt Settings</CardTitle>
             <CardDescription>Customize receipt footer message</CardDescription>

@@ -16,6 +16,11 @@ interface Sale {
   subtotal: number;
   tax_amount: number;
   payment_method: string;
+  payment_status: string;
+  cash_amount: number | null;
+  mpesa_amount: number | null;
+  change_amount: number | null;
+  mpesa_receipt_number: string | null;
   cashier_id: string;
   sale_items: {
     quantity: number;
@@ -35,9 +40,16 @@ interface Sale {
   };
 }
 
+interface MpesaTransaction {
+  mpesa_receipt_number: string | null;
+  phone_number: string;
+  amount: number;
+}
+
 export function Receipt({ saleId, onClose }: ReceiptProps) {
   const [sale, setSale] = useState<Sale | null>(null);
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [mpesaTransaction, setMpesaTransaction] = useState<MpesaTransaction | null>(null);
 
   useEffect(() => {
     loadData();
@@ -60,6 +72,22 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
         .single();
 
       setSale({ ...saleData, profiles: profileData || { full_name: 'Unknown' } } as Sale);
+
+      // Fetch M-Pesa transaction details if applicable
+      if (saleData.payment_method === 'mpesa' || saleData.payment_method === 'hybrid') {
+        const { data: mpesaData } = await supabase
+          .from('mpesa_transactions')
+          .select('mpesa_receipt_number, phone_number, amount')
+          .eq('sale_id', saleId)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (mpesaData) {
+          setMpesaTransaction(mpesaData);
+        }
+      }
     }
 
     // Load settings
@@ -76,6 +104,11 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
   };
 
   if (!sale) return null;
+
+  const cashAmount = sale.cash_amount || 0;
+  const mpesaAmount = sale.mpesa_amount || 0;
+  const changeAmount = sale.change_amount || 0;
+  const isHybridPayment = sale.payment_method === 'hybrid' || (cashAmount > 0 && mpesaAmount > 0);
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -157,16 +190,66 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
               <span>TOTAL:</span>
               <span>KSh {sale.total_amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-sm">
+          </div>
+
+          {/* Payment Breakdown */}
+          <div className="border-t border-b py-3 space-y-2 bg-muted/30 rounded px-2">
+            <div className="font-semibold text-center border-b pb-1 mb-2">Payment Details</div>
+            
+            {cashAmount > 0 && (
+              <div className="flex justify-between">
+                <span>💵 Cash Paid:</span>
+                <span className="font-medium">KSh {cashAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            
+            {mpesaAmount > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span>📱 M-Pesa Paid:</span>
+                  <span className="font-medium">KSh {mpesaAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
+                </div>
+                {mpesaTransaction?.mpesa_receipt_number && (
+                  <div className="flex justify-between text-xs">
+                    <span>M-Pesa Ref:</span>
+                    <span className="font-mono font-semibold text-primary">{mpesaTransaction.mpesa_receipt_number}</span>
+                  </div>
+                )}
+                {mpesaTransaction?.phone_number && (
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Phone:</span>
+                    <span>{mpesaTransaction.phone_number}</span>
+                  </div>
+                )}
+              </>
+            )}
+            
+            {changeAmount > 0 && (
+              <div className="flex justify-between text-green-600 dark:text-green-400 font-medium border-t pt-1">
+                <span>Change Given:</span>
+                <span>KSh {changeAmount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t">
               <span>Payment Method:</span>
-              <span className="uppercase">{sale.payment_method}</span>
+              <span className="uppercase font-medium">
+                {isHybridPayment ? 'CASH + M-PESA' : sale.payment_method.toUpperCase()}
+              </span>
+            </div>
+            
+            <div className="flex justify-between text-xs">
+              <span>Payment Status:</span>
+              <span className={`font-medium uppercase ${sale.payment_status === 'paid' ? 'text-green-600' : 'text-amber-600'}`}>
+                {sale.payment_status}
+              </span>
             </div>
           </div>
 
-          {/* MPESA Info */}
-          {settings.mpesa_paybill && (
+          {/* MPESA Info for manual payments */}
+          {settings.mpesa_paybill && sale.payment_method === 'cash' && (
             <div className="text-center text-xs bg-muted p-2 rounded">
-              <p>Pay via MPESA</p>
+              <p>Pay via M-PESA</p>
               <p>Paybill: {settings.mpesa_paybill}</p>
               {settings.mpesa_till_number && <p>Till: {settings.mpesa_till_number}</p>}
             </div>
@@ -176,7 +259,7 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
           <div className="text-center text-xs border-t pt-4">
             <p>{settings.receipt_footer || 'Thank you for your business!'}</p>
             <p className="mt-2 text-muted-foreground">
-              Powered by Wholesale POS System
+              Powered by Molabs-POS System
             </p>
           </div>
         </div>
