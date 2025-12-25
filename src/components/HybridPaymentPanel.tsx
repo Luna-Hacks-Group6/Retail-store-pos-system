@@ -16,7 +16,7 @@ interface HybridPaymentPanelProps {
   changeAmount: number;
   status: PaymentStatus;
   mpesaPending: boolean;
-  onCashAmountChange: (amount: number) => void;
+  onCashAmountChange: (amount: number) => Promise<boolean> | void;
   onMpesaPayment: (phone: string, amount: number) => Promise<boolean>;
   onCompleteSale: () => void;
   isFullyPaid: boolean;
@@ -41,12 +41,16 @@ export function HybridPaymentPanel({
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [mpesaAmountInput, setMpesaAmountInput] = useState('');
 
-  const handleCashSubmit = () => {
+  const handleCashSubmit = async () => {
     const amount = parseFloat(cashInput);
     if (amount > 0) {
-      onCashAmountChange(amount);
+      await onCashAmountChange(amount);
       setCashInput('');
     }
+  };
+
+  const handleQuickCash = async (amount: number) => {
+    await onCashAmountChange(amount);
   };
 
   const handleMpesaSubmit = async () => {
@@ -139,7 +143,7 @@ export function HybridPaymentPanel({
                   key={amount}
                   variant="outline"
                   size="sm"
-                  onClick={() => onCashAmountChange(cashAmount + amount)}
+                  onClick={() => handleQuickCash(cashAmount + amount)}
                   disabled={disabled}
                 >
                   +{amount}
@@ -149,7 +153,7 @@ export function HybridPaymentPanel({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onCashAmountChange(totalAmount - mpesaAmount)}
+                  onClick={() => handleQuickCash(totalAmount - mpesaAmount)}
                   disabled={disabled}
                 >
                   Exact ({remainingAmount.toLocaleString()})
