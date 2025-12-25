@@ -449,6 +449,7 @@ export type Database = {
           customer_id: string | null
           id: string
           mpesa_amount: number | null
+          mpesa_receipt_number: string | null
           payment_method: string
           payment_status: string
           status: string | null
@@ -464,6 +465,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           mpesa_amount?: number | null
+          mpesa_receipt_number?: string | null
           payment_method: string
           payment_status?: string
           status?: string | null
@@ -479,6 +481,7 @@ export type Database = {
           customer_id?: string | null
           id?: string
           mpesa_amount?: number | null
+          mpesa_receipt_number?: string | null
           payment_method?: string
           payment_status?: string
           status?: string | null

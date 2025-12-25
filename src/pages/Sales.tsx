@@ -27,6 +27,7 @@ import { Receipt } from '@/components/Receipt';
 import { Badge } from '@/components/ui/badge';
 import { HybridPaymentPanel } from '@/components/HybridPaymentPanel';
 import { useHybridPayment } from '@/hooks/useHybridPayment';
+import { useLoyaltyPoints } from '@/hooks/useLoyaltyPoints';
 
 interface Product {
   id: string;
@@ -52,6 +53,7 @@ interface Customer {
 
 export default function Sales() {
   const { user } = useAuth();
+  const { awardLoyaltyPoints } = useLoyaltyPoints();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -268,7 +270,7 @@ export default function Sales() {
 
       if (updateError) throw updateError;
 
-      // Update customer if selected
+      // Update customer and award loyalty points if selected
       if (selectedCustomer && selectedCustomer !== 'walk-in') {
         const { data: customerData } = await supabase
           .from('customers')
@@ -286,6 +288,9 @@ export default function Sales() {
             })
             .eq('id', selectedCustomer);
         }
+
+        // Award loyalty points automatically
+        await awardLoyaltyPoints(selectedCustomer, getTotalAmount());
       }
 
       toast.success('Sale completed successfully!');
