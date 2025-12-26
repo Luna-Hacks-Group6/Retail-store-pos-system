@@ -448,6 +448,9 @@ export type Database = {
           created_at: string | null
           customer_id: string | null
           id: string
+          loyalty_discount: number | null
+          loyalty_points_earned: number | null
+          loyalty_points_redeemed: number | null
           mpesa_amount: number | null
           mpesa_receipt_number: string | null
           payment_method: string
@@ -464,6 +467,9 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           id?: string
+          loyalty_discount?: number | null
+          loyalty_points_earned?: number | null
+          loyalty_points_redeemed?: number | null
           mpesa_amount?: number | null
           mpesa_receipt_number?: string | null
           payment_method: string
@@ -480,6 +486,9 @@ export type Database = {
           created_at?: string | null
           customer_id?: string | null
           id?: string
+          loyalty_discount?: number | null
+          loyalty_points_earned?: number | null
+          loyalty_points_redeemed?: number | null
           mpesa_amount?: number | null
           mpesa_receipt_number?: string | null
           payment_method?: string

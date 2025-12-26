@@ -41,13 +41,13 @@ export function useLoyaltyPoints() {
     return Math.floor((amount / settings.pointsPerAmount) * settings.pointsRate);
   };
 
-  const awardLoyaltyPoints = async (customerId: string, saleAmount: number): Promise<boolean> => {
+  const awardLoyaltyPoints = async (customerId: string, saleAmount: number): Promise<number> => {
     try {
       const settings = await loadLoyaltySettings();
       const pointsToAdd = calculatePoints(saleAmount, settings);
       
       if (pointsToAdd <= 0) {
-        return true; // No points to award, but not an error
+        return 0; // No points to award
       }
 
       // Check if customer is already a loyalty member
@@ -60,7 +60,7 @@ export function useLoyaltyPoints() {
       if (fetchError && fetchError.code !== 'PGRST116') {
         // PGRST116 is "no rows returned" - not an error for us
         console.error('Error fetching loyalty member:', fetchError);
-        return false;
+        return 0;
       }
 
       if (existingMember) {
@@ -80,7 +80,7 @@ export function useLoyaltyPoints() {
 
         if (updateError) {
           console.error('Error updating loyalty member:', updateError);
-          return false;
+          return 0;
         }
 
         toast.success(`+${pointsToAdd} loyalty points awarded!`, {
@@ -101,7 +101,7 @@ export function useLoyaltyPoints() {
 
         if (insertError) {
           console.error('Error creating loyalty member:', insertError);
-          return false;
+          return 0;
         }
 
         toast.success(`Welcome to Loyalty Program!`, {
@@ -109,15 +109,51 @@ export function useLoyaltyPoints() {
         });
       }
 
-      return true;
+      return pointsToAdd;
     } catch (error) {
       console.error('Error awarding loyalty points:', error);
+      return 0;
+    }
+  };
+
+  const redeemLoyaltyPoints = async (customerId: string, pointsToRedeem: number): Promise<boolean> => {
+    try {
+      const { data: member, error: fetchError } = await supabase
+        .from('loyalty_members')
+        .select('id, points')
+        .eq('customer_id', customerId)
+        .single();
+
+      if (fetchError || !member) {
+        toast.error('Loyalty member not found');
+        return false;
+      }
+
+      if (member.points < pointsToRedeem) {
+        toast.error('Insufficient loyalty points');
+        return false;
+      }
+
+      const { error: updateError } = await supabase
+        .from('loyalty_members')
+        .update({ points: member.points - pointsToRedeem })
+        .eq('id', member.id);
+
+      if (updateError) {
+        console.error('Error redeeming points:', updateError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error redeeming loyalty points:', error);
       return false;
     }
   };
 
   return {
     awardLoyaltyPoints,
+    redeemLoyaltyPoints,
     loadLoyaltySettings,
     calculatePoints,
     calculateTier,
