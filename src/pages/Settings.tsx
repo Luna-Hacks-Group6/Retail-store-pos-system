@@ -186,6 +186,27 @@ export default function Settings() {
             </p>
 
             <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-semibold mb-3 block">Points Redemption Value</Label>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <Label htmlFor="loyalty_points_value">KES per Point</Label>
+                  <Input
+                    id="loyalty_points_value"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={settings.loyalty_points_value || '1'}
+                    onChange={(e) => updateSetting('loyalty_points_value', e.target.value)}
+                    disabled={role !== 'admin'}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Each loyalty point is worth KSh {settings.loyalty_points_value || '1'} when redeemed as a discount
+              </p>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
               <Label className="text-sm font-semibold mb-3 block">Tier Thresholds (Total Spend in KES)</Label>
               <div className="grid gap-3">
                 <div className="flex items-center gap-3">
