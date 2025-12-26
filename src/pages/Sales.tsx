@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { HybridPaymentPanel } from '@/components/HybridPaymentPanel';
 import { useHybridPayment } from '@/hooks/useHybridPayment';
 import { useLoyaltyPoints } from '@/hooks/useLoyaltyPoints';
+import { LoyaltyRedemption } from '@/components/LoyaltyRedemption';
 
 interface Product {
   id: string;
@@ -53,7 +54,7 @@ interface Customer {
 
 export default function Sales() {
   const { user } = useAuth();
-  const { awardLoyaltyPoints } = useLoyaltyPoints();
+  const { awardLoyaltyPoints, redeemLoyaltyPoints } = useLoyaltyPoints();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,14 +64,35 @@ export default function Sales() {
   const [completedSaleId, setCompletedSaleId] = useState<string | null>(null);
   const [currentSaleId, setCurrentSaleId] = useState<string | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+  
+  // Loyalty redemption state
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState(0);
+  const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState(0);
+
+  const getSubtotalWithDiscount = () => {
+    const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+    return Math.max(0, subtotal - loyaltyDiscount);
+  };
 
   const getTotalAmount = () => {
-    const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+    const subtotalWithDiscount = getSubtotalWithDiscount();
     const taxAmount = cart.reduce((sum, item) => sum + (item.lineTotal * item.tax_rate) / 100, 0);
-    return subtotal + taxAmount;
+    return subtotalWithDiscount + taxAmount;
   };
   
   const payment = useHybridPayment(currentSaleId, getTotalAmount());
+
+  // Reset loyalty discount when customer changes
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomer(customerId);
+    setLoyaltyDiscount(0);
+    setLoyaltyPointsToRedeem(0);
+  };
+
+  const handleLoyaltyDiscount = (discount: number, pointsUsed: number) => {
+    setLoyaltyDiscount(discount);
+    setLoyaltyPointsToRedeem(pointsUsed);
+  };
 
   useEffect(() => {
     loadProducts();
@@ -165,14 +187,16 @@ export default function Sales() {
 
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+    const subtotalWithDiscount = Math.max(0, subtotal - loyaltyDiscount);
     const taxAmount = cart.reduce(
       (sum, item) => sum + (item.lineTotal * item.tax_rate) / 100,
       0
     );
     return {
       subtotal: subtotal.toFixed(2),
+      subtotalWithDiscount: subtotalWithDiscount.toFixed(2),
       taxAmount: taxAmount.toFixed(2),
-      total: (subtotal + taxAmount).toFixed(2),
+      total: (subtotalWithDiscount + taxAmount).toFixed(2),
     };
   };
 
@@ -256,22 +280,16 @@ export default function Sales() {
         ? 'hybrid' 
         : payment.cashAmount > 0 ? 'cash' : 'mpesa';
 
-      const { error: updateError } = await supabase
-        .from('sales')
-        .update({
-          status: 'completed',
-          payment_status: 'paid',
-          payment_method: paymentMethod,
-          cash_amount: payment.cashAmount,
-          mpesa_amount: payment.mpesaAmount,
-          change_amount: payment.changeAmount,
-        })
-        .eq('id', saleId);
+      // Redeem loyalty points if applicable
+      if (loyaltyPointsToRedeem > 0 && selectedCustomer !== 'walk-in') {
+        await redeemLoyaltyPoints(selectedCustomer, loyaltyPointsToRedeem);
+      }
 
-      if (updateError) throw updateError;
-
-      // Update customer and award loyalty points if selected
+      // Award loyalty points and get points earned
+      let pointsEarned = 0;
       if (selectedCustomer && selectedCustomer !== 'walk-in') {
+        pointsEarned = await awardLoyaltyPoints(selectedCustomer, getTotalAmount());
+        
         const { data: customerData } = await supabase
           .from('customers')
           .select('total_purchases, purchase_count')
@@ -288,16 +306,32 @@ export default function Sales() {
             })
             .eq('id', selectedCustomer);
         }
-
-        // Award loyalty points automatically
-        await awardLoyaltyPoints(selectedCustomer, getTotalAmount());
       }
+
+      const { error: updateError } = await supabase
+        .from('sales')
+        .update({
+          status: 'completed',
+          payment_status: 'paid',
+          payment_method: paymentMethod,
+          cash_amount: payment.cashAmount,
+          mpesa_amount: payment.mpesaAmount,
+          change_amount: payment.changeAmount,
+          loyalty_discount: loyaltyDiscount,
+          loyalty_points_redeemed: loyaltyPointsToRedeem,
+          loyalty_points_earned: pointsEarned,
+        })
+        .eq('id', saleId);
+
+      if (updateError) throw updateError;
 
       toast.success('Sale completed successfully!');
       setCompletedSaleId(saleId);
       setCart([]);
       setSelectedCustomer('walk-in');
       setCurrentSaleId(null);
+      setLoyaltyDiscount(0);
+      setLoyaltyPointsToRedeem(0);
       payment.reset();
       loadProducts();
     } catch (error: any) {
@@ -501,7 +535,7 @@ export default function Sales() {
                     <div className="space-y-3 pt-4 border-t-2">
                       <div>
                         <Label className="text-xs font-semibold text-muted-foreground">CUSTOMER</Label>
-                        <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                        <Select value={selectedCustomer} onValueChange={handleCustomerChange}>
                           <SelectTrigger className="mt-1">
                             <SelectValue placeholder="Walk-in customer" />
                           </SelectTrigger>
@@ -515,6 +549,17 @@ export default function Sales() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Loyalty Redemption - only show for registered customers */}
+                      {selectedCustomer !== 'walk-in' && cart.length > 0 && (
+                        <LoyaltyRedemption
+                          customerId={selectedCustomer}
+                          totalAmount={cart.reduce((sum, item) => sum + item.lineTotal, 0)}
+                          onApplyDiscount={handleLoyaltyDiscount}
+                          appliedDiscount={loyaltyDiscount}
+                          appliedPoints={loyaltyPointsToRedeem}
+                        />
+                      )}
 
                       {/* Hybrid Payment Panel */}
                       <HybridPaymentPanel

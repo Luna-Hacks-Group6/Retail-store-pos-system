@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LoyaltyPointsDisplay } from './LoyaltyPointsDisplay';
 
 interface ReceiptProps {
   saleId: string;
@@ -22,6 +23,10 @@ interface Sale {
   change_amount: number | null;
   mpesa_receipt_number: string | null;
   cashier_id: string;
+  customer_id: string | null;
+  loyalty_discount: number | null;
+  loyalty_points_redeemed: number | null;
+  loyalty_points_earned: number | null;
   sale_items: {
     quantity: number;
     unit_price: number;
@@ -182,6 +187,12 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
               <span>Subtotal:</span>
               <span>KSh {sale.subtotal.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
             </div>
+            {(sale.loyalty_discount ?? 0) > 0 && (
+              <div className="flex justify-between text-green-600 dark:text-green-400">
+                <span>🎁 Loyalty Discount:</span>
+                <span className="font-medium">-KSh {(sale.loyalty_discount ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span>VAT (16%):</span>
               <span>KSh {sale.tax_amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
@@ -253,6 +264,14 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
               <p>Paybill: {settings.mpesa_paybill}</p>
               {settings.mpesa_till_number && <p>Till: {settings.mpesa_till_number}</p>}
             </div>
+          )}
+
+          {/* Loyalty Points Section - Customer Facing Display */}
+          {sale.customer_id && (
+            <LoyaltyPointsDisplay
+              customerId={sale.customer_id}
+              pointsEarned={sale.loyalty_points_earned ?? 0}
+            />
           )}
 
           {/* Footer */}
