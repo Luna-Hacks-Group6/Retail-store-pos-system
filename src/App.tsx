@@ -30,6 +30,10 @@ import Loyalty from "./pages/Loyalty";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
+import Invoices from "./pages/Invoices";
+import DeliveryNotes from "./pages/DeliveryNotes";
+import SupplierInvoices from "./pages/SupplierInvoices";
+import StockMovements from "./pages/StockMovements";
 
 const queryClient = new QueryClient();
 
@@ -57,11 +61,15 @@ const App = () => (
                         <Route path="/products" element={<Products />} />
                         <Route path="/products/new" element={<NewProduct />} />
                         <Route path="/sales" element={<Sales />} />
+                        <Route path="/invoices" element={<Invoices />} />
                         <Route path="/customers" element={<Customers />} />
                         <Route path="/vendors" element={<Vendors />} />
                         <Route path="/purchase-orders" element={<PurchaseOrders />} />
                         <Route path="/purchase-orders/new" element={<NewPurchaseOrder />} />
                         <Route path="/purchase-orders/:id/receive" element={<ReceivePurchaseOrder />} />
+                        <Route path="/delivery-notes" element={<DeliveryNotes />} />
+                        <Route path="/supplier-invoices" element={<SupplierInvoices />} />
+                        <Route path="/stock-movements" element={<StockMovements />} />
                         <Route path="/mobile-cashier" element={<MobileCashier />} />
                         <Route path="/locations" element={<Locations />} />
                         <Route path="/inventory-transfers" element={<InventoryTransfers />} />
