@@ -55,6 +55,12 @@ interface Customer {
 export default function Sales() {
   const { user } = useAuth();
   const { awardLoyaltyPoints, redeemLoyaltyPoints } = useLoyaltyPoints();
+  
+  // Generate unique invoice number
+  const generateInvoiceNumber = async () => {
+    const { data } = await supabase.rpc('generate_invoice_number');
+    return data || `INV-${Date.now()}`;
+  };
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -324,6 +330,45 @@ export default function Sales() {
         .eq('id', saleId);
 
       if (updateError) throw updateError;
+
+      // Create invoice for this sale
+      const totals = calculateTotals();
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          sale_id: saleId,
+          customer_id: selectedCustomer === 'walk-in' ? null : selectedCustomer,
+          invoice_number: await generateInvoiceNumber(),
+          subtotal: parseFloat(totals.subtotal),
+          tax_amount: parseFloat(totals.taxAmount),
+          discount_amount: loyaltyDiscount,
+          total_amount: parseFloat(totals.total),
+          paid_amount: parseFloat(totals.total),
+          balance_due: 0,
+          status: 'paid',
+          issued_at: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (invoiceError) {
+        console.error('Invoice creation error:', invoiceError);
+      }
+
+      // Record stock movements for audit trail
+      for (const item of cart) {
+        await supabase.rpc('record_stock_movement', {
+          p_product_id: item.id,
+          p_movement_type: 'sale',
+          p_quantity: -item.quantity,
+          p_reference_type: 'sale',
+          p_reference_id: saleId,
+          p_notes: `Sale completed`,
+          p_created_by: user?.id,
+        });
+      }
 
       toast.success('Sale completed successfully!');
       setCompletedSaleId(saleId);

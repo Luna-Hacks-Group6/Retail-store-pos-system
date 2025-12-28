@@ -9,8 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, Plus, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { RefreshCw, Plus, Search, RotateCcw, Package } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Return {
   id: string;
@@ -20,21 +21,39 @@ interface Return {
   status: string;
   created_at: string;
   refund_method: string;
+  stock_restored: boolean;
+  processed_at: string | null;
+  return_items: any;
+}
+
+interface Sale {
+  id: string;
+  total_amount: number;
+  created_at: string;
+  sale_items: Array<{
+    id: string;
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    products: { name: string } | null;
+  }>;
 }
 
 export default function Returns() {
+  const { user } = useAuth();
   const [returns, setReturns] = useState<Return[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [saleSearchTerm, setSaleSearchTerm] = useState('');
+  const [salesSearchResults, setSalesSearchResults] = useState<Sale[]>([]);
+  const [searchingSales, setSearchingSales] = useState(false);
 
   const [formData, setFormData] = useState({
-    sale_id: '',
     return_amount: '',
     reason: '',
     refund_method: 'cash',
-    status: 'pending'
   });
 
   useEffect(() => {
@@ -44,81 +63,152 @@ export default function Returns() {
   const loadReturns = async () => {
     try {
       const { data, error } = await supabase
-        .from('returns' as any)
+        .from('returns')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReturns((data || []) as unknown as Return[]);
+      setReturns(data || []);
     } catch (error: any) {
-      toast({
-        title: 'Error loading returns',
-        description: error.message,
-        variant: 'destructive'
-      });
+      toast.error('Error loading returns: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const searchSales = async () => {
+    if (!saleSearchTerm.trim()) return;
     
+    setSearchingSales(true);
     try {
-      const { error } = await supabase.from('returns' as any).insert([{
-        sale_id: formData.sale_id,
-        return_amount: parseFloat(formData.return_amount),
-        reason: formData.reason,
-        refund_method: formData.refund_method,
-        status: formData.status
-      } as any]);
+      const { data, error } = await supabase
+        .from('sales')
+        .select(`
+          id,
+          total_amount,
+          created_at,
+          sale_items (
+            id,
+            product_id,
+            quantity,
+            unit_price,
+            products (name)
+          )
+        `)
+        .or(`id.ilike.%${saleSearchTerm}%`)
+        .eq('status', 'completed')
+        .limit(10);
 
       if (error) throw error;
-
-      toast({
-        title: 'Return created',
-        description: 'Return request has been recorded successfully'
-      });
-
-      setDialogOpen(false);
-      setFormData({
-        sale_id: '',
-        return_amount: '',
-        reason: '',
-        refund_method: 'cash',
-        status: 'pending'
-      });
-      loadReturns();
-    } catch (error) {
-      toast({
-        title: 'Error creating return',
-        description: error.message,
-        variant: 'destructive'
-      });
+      setSalesSearchResults(data || []);
+    } catch (error: any) {
+      toast.error('Error searching sales: ' + error.message);
+    } finally {
+      setSearchingSales(false);
     }
   };
 
-  const updateReturnStatus = async (id: string, status: string) => {
+  const handleSelectSale = (sale: Sale) => {
+    setSelectedSale(sale);
+    setFormData({
+      ...formData,
+      return_amount: sale.total_amount.toString(),
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedSale) {
+      toast.error('Please select a sale to return');
+      return;
+    }
+
+    try {
+      const returnItems = selectedSale.sale_items.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        product_name: item.products?.name,
+      }));
+
+      const { error } = await supabase.from('returns').insert({
+        sale_id: selectedSale.id,
+        return_amount: parseFloat(formData.return_amount),
+        reason: formData.reason,
+        refund_method: formData.refund_method,
+        status: 'pending',
+        return_items: returnItems,
+        stock_restored: false,
+      });
+
+      if (error) throw error;
+
+      toast.success('Return request created successfully');
+      setDialogOpen(false);
+      setSelectedSale(null);
+      setSalesSearchResults([]);
+      setSaleSearchTerm('');
+      setFormData({
+        return_amount: '',
+        reason: '',
+        refund_method: 'cash',
+      });
+      loadReturns();
+    } catch (error: any) {
+      toast.error('Error creating return: ' + error.message);
+    }
+  };
+
+  const approveReturn = async (returnId: string) => {
+    try {
+      // Call the process_return_stock function to restore inventory
+      const { data: processed, error: processError } = await supabase
+        .rpc('process_return_stock', { p_return_id: returnId });
+
+      if (processError) throw processError;
+
+      if (!processed) {
+        toast.error('Return was already processed or could not be processed');
+        return;
+      }
+
+      // Update return status
+      const { error: updateError } = await supabase
+        .from('returns')
+        .update({ 
+          status: 'completed',
+          processed_by: user?.id,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', returnId);
+
+      if (updateError) throw updateError;
+
+      toast.success('Return approved and stock restored');
+      loadReturns();
+    } catch (error: any) {
+      toast.error('Error approving return: ' + error.message);
+    }
+  };
+
+  const rejectReturn = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('returns' as any)
-        .update({ status } as any)
+        .from('returns')
+        .update({ 
+          status: 'rejected',
+          processed_by: user?.id,
+          processed_at: new Date().toISOString(),
+        })
         .eq('id', id);
 
       if (error) throw error;
 
-      toast({
-        title: 'Status updated',
-        description: `Return status changed to ${status}`
-      });
-      
+      toast.success('Return rejected');
       loadReturns();
     } catch (error: any) {
-      toast({
-        title: 'Error updating status',
-        description: error.message,
-        variant: 'destructive'
-      });
+      toast.error('Error rejecting return: ' + error.message);
     }
   };
 
@@ -144,7 +234,10 @@ export default function Returns() {
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Returns & Refunds</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <RotateCcw className="h-7 w-7" />
+            Returns & Refunds
+          </h1>
           <p className="text-muted-foreground">Manage product returns and refund requests</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -154,21 +247,80 @@ export default function Returns() {
               New Return
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Create Return Request</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="sale_id">Sale ID</Label>
-                <Input
-                  id="sale_id"
-                  required
-                  value={formData.sale_id}
-                  onChange={(e) => setFormData({ ...formData, sale_id: e.target.value })}
-                  placeholder="Enter sale ID"
-                />
+              {/* Sale Search */}
+              <div className="space-y-2">
+                <Label>Search Sale</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter sale ID..."
+                    value={saleSearchTerm}
+                    onChange={(e) => setSaleSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), searchSales())}
+                  />
+                  <Button type="button" variant="outline" onClick={searchSales} disabled={searchingSales}>
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+
+              {/* Sale Search Results */}
+              {salesSearchResults.length > 0 && (
+                <div className="border rounded-lg max-h-48 overflow-y-auto">
+                  {salesSearchResults.map((sale) => (
+                    <div
+                      key={sale.id}
+                      onClick={() => handleSelectSale(sale)}
+                      className={`p-3 cursor-pointer hover:bg-muted transition-colors border-b last:border-b-0 ${
+                        selectedSale?.id === sale.id ? 'bg-primary/10 border-primary' : ''
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-mono text-sm">{sale.id.slice(0, 8)}...</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(sale.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <p className="font-semibold">
+                          KSh {sale.total_amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {sale.sale_items.slice(0, 3).map((item, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {item.products?.name} x{item.quantity}
+                          </Badge>
+                        ))}
+                        {sale.sale_items.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{sale.sale_items.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Selected Sale Display */}
+              {selectedSale && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="h-4 w-4" />
+                    <span className="font-semibold">Selected Sale</span>
+                  </div>
+                  <p className="text-sm font-mono">{selectedSale.id}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedSale.sale_items.length} items - KSh {selectedSale.total_amount.toLocaleString('en-KE')}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="return_amount">Return Amount (KSh)</Label>
                 <Input
@@ -212,7 +364,9 @@ export default function Returns() {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Create Return</Button>
+                <Button type="submit" disabled={!selectedSale}>
+                  Create Return
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -249,6 +403,7 @@ export default function Returns() {
                   <TableHead className="hidden md:table-cell">Refund Method</TableHead>
                   <TableHead className="hidden sm:table-cell">Reason</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Stock Restored</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -256,13 +411,13 @@ export default function Returns() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Loading returns...
                     </TableCell>
                   </TableRow>
                 ) : filteredReturns.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No returns found
                     </TableCell>
                   </TableRow>
@@ -284,6 +439,13 @@ export default function Returns() {
                           {ret.status}
                         </Badge>
                       </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {ret.stock_restored ? (
+                          <Badge variant="default">Yes</Badge>
+                        ) : (
+                          <Badge variant="outline">No</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                         {new Date(ret.created_at).toLocaleDateString()}
                       </TableCell>
@@ -293,14 +455,14 @@ export default function Returns() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => updateReturnStatus(ret.id, 'completed')}
+                              onClick={() => approveReturn(ret.id)}
                             >
                               Approve
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => updateReturnStatus(ret.id, 'rejected')}
+                              onClick={() => rejectReturn(ret.id)}
                             >
                               Reject
                             </Button>
