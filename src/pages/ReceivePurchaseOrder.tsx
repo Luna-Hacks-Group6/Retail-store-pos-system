@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ArrowLeft, Package } from 'lucide-react';
+import { ArrowLeft, Package, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
 
 interface POItem {
   id: string;
@@ -16,6 +18,14 @@ interface POItem {
   received_quantity: number;
   unit_cost: number;
   products: { name: string; stock_on_hand: number } | null;
+}
+
+interface ReceiveItem extends POItem {
+  receiving_quantity: number;
+  batch_number: string;
+  expiry_date: string;
+  rejection_reason: string;
+  rejected_quantity: number;
 }
 
 interface PurchaseOrder {
@@ -29,10 +39,11 @@ interface PurchaseOrder {
 export default function ReceivePurchaseOrder() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const [loading, setLoading] = useState(false);
   const [po, setPO] = useState<PurchaseOrder | null>(null);
-  const [items, setItems] = useState<POItem[]>([]);
+  const [items, setItems] = useState<ReceiveItem[]>([]);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (role !== 'admin') {
@@ -60,62 +71,144 @@ export default function ReceivePurchaseOrder() {
         .select('*, products(name, stock_on_hand)')
         .eq('po_id', id);
 
-      setItems(itemsData || []);
+      // Initialize receiving quantities
+      const receiveItems: ReceiveItem[] = (itemsData || []).map(item => ({
+        ...item,
+        receiving_quantity: item.quantity - (item.received_quantity || 0),
+        batch_number: '',
+        expiry_date: '',
+        rejection_reason: '',
+        rejected_quantity: 0,
+      }));
+
+      setItems(receiveItems);
     }
   };
 
-  const updateReceivedQuantity = (itemId: string, value: number) => {
+  const updateReceivingQuantity = (itemId: string, value: number) => {
     setItems(items.map(item => 
       item.id === itemId 
-        ? { ...item, received_quantity: Math.min(value, item.quantity) }
+        ? { 
+            ...item, 
+            receiving_quantity: Math.min(value, item.quantity - (item.received_quantity || 0)),
+            rejected_quantity: Math.max(0, (item.quantity - (item.received_quantity || 0)) - value)
+          }
+        : item
+    ));
+  };
+
+  const updateItemField = (itemId: string, field: keyof ReceiveItem, value: any) => {
+    setItems(items.map(item => 
+      item.id === itemId 
+        ? { ...item, [field]: value }
         : item
     ));
   };
 
   const handleReceive = async () => {
-    if (!po) return;
+    if (!po || !user?.id) return;
 
-    const hasUnreceivedItems = items.some(item => item.received_quantity < item.quantity);
-    
-    if (hasUnreceivedItems) {
-      const confirmed = window.confirm(
-        'Some items have not been fully received. Do you want to proceed anyway?'
-      );
-      if (!confirmed) return;
+    const hasItemsToReceive = items.some(item => item.receiving_quantity > 0);
+    if (!hasItemsToReceive) {
+      toast.error('No items to receive');
+      return;
     }
 
     setLoading(true);
 
     try {
-      // Update received quantities in po_items
-      const updatePromises = items.map(item =>
-        supabase
-          .from('po_items')
-          .update({ received_quantity: item.received_quantity })
-          .eq('id', item.id)
-      );
+      // Generate GRN number
+      const { data: grnNumber } = await supabase.rpc('generate_grn_number');
+      
+      // Calculate totals
+      const totalItems = items.reduce((sum, item) => sum + item.receiving_quantity, 0);
+      const totalValue = items.reduce((sum, item) => sum + (item.receiving_quantity * item.unit_cost), 0);
 
-      // Update product stock levels
-      const stockPromises = items.map(item =>
-        supabase.rpc('increment_stock', {
-          product_id: item.product_id,
-          quantity_change: item.received_quantity
+      // Create delivery note (GRN)
+      const { data: deliveryNote, error: dnError } = await supabase
+        .from('delivery_notes')
+        .insert({
+          po_id: po.id,
+          vendor_id: po.vendor_id,
+          grn_number: grnNumber,
+          received_by: user.id,
+          total_items: totalItems,
+          total_value: totalValue,
+          notes: notes,
+          status: 'completed',
         })
+        .select()
+        .single();
+
+      if (dnError) throw dnError;
+
+      // Create delivery note items
+      for (const item of items) {
+        if (item.receiving_quantity > 0) {
+          const { error: itemError } = await supabase
+            .from('delivery_note_items')
+            .insert({
+              delivery_note_id: deliveryNote.id,
+              po_item_id: item.id,
+              product_id: item.product_id,
+              ordered_quantity: item.quantity,
+              received_quantity: item.receiving_quantity,
+              rejected_quantity: item.rejected_quantity,
+              rejection_reason: item.rejection_reason || null,
+              unit_cost: item.unit_cost,
+              line_total: item.receiving_quantity * item.unit_cost,
+              batch_number: item.batch_number || null,
+              expiry_date: item.expiry_date || null,
+            });
+
+          if (itemError) throw itemError;
+
+          // Update PO item received quantity
+          const newReceivedQty = (item.received_quantity || 0) + item.receiving_quantity;
+          await supabase
+            .from('po_items')
+            .update({ received_quantity: newReceivedQty })
+            .eq('id', item.id);
+
+          // Record stock movement and update inventory
+          await supabase.rpc('record_stock_movement', {
+            p_product_id: item.product_id,
+            p_movement_type: 'purchase_receipt',
+            p_quantity: item.receiving_quantity,
+            p_reference_type: 'delivery_note',
+            p_reference_id: deliveryNote.id,
+            p_notes: `Received via GRN ${grnNumber}`,
+            p_created_by: user.id,
+          });
+        }
+      }
+
+      // Check if PO is fully received
+      const allFullyReceived = items.every(item => 
+        (item.received_quantity || 0) + item.receiving_quantity >= item.quantity
       );
 
-      await Promise.all([...updatePromises, ...stockPromises]);
+      const someReceived = items.some(item => 
+        (item.received_quantity || 0) + item.receiving_quantity > 0
+      );
 
-      // Update PO status to received
-      const { error: statusError } = await supabase
+      // Update PO status
+      let newStatus = 'sent';
+      if (allFullyReceived) {
+        newStatus = 'received';
+      } else if (someReceived) {
+        newStatus = 'partially_received';
+      }
+
+      await supabase
         .from('purchase_orders')
-        .update({ status: 'received' })
+        .update({ status: newStatus })
         .eq('id', po.id);
 
-      if (statusError) throw statusError;
-
-      toast.success('Purchase order received successfully');
-      navigate('/purchase-orders');
+      toast.success(`Goods received successfully. GRN: ${grnNumber}`);
+      navigate('/delivery-notes');
     } catch (error: any) {
+      console.error('Error receiving goods:', error);
       toast.error(error.message);
     } finally {
       setLoading(false);
@@ -141,7 +234,7 @@ export default function ReceivePurchaseOrder() {
           Back
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Receive Purchase Order</h1>
+          <h1 className="text-3xl font-bold">Receive Goods</h1>
           <p className="text-muted-foreground">
             PO #{po.po_number} - {po.vendors?.name}
           </p>
@@ -150,68 +243,120 @@ export default function ReceivePurchaseOrder() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Items to Receive</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Items to Receive
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="p-4 border rounded-lg space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-lg">{item.products?.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Current Stock: {item.products?.stock_on_hand || 0}
-                  </p>
+        <CardContent className="space-y-6">
+          {items.map((item) => {
+            const remainingToReceive = item.quantity - (item.received_quantity || 0);
+            const isPartiallyReceived = (item.received_quantity || 0) > 0;
+            
+            return (
+              <div key={item.id} className="p-4 border rounded-lg space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg">{item.products?.name}</h3>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="outline">
+                        Current Stock: {item.products?.stock_on_hand || 0}
+                      </Badge>
+                      {isPartiallyReceived && (
+                        <Badge variant="secondary">
+                          Previously Received: {item.received_quantity}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Ordered / Remaining</p>
+                    <p className="text-2xl font-bold">{item.quantity} / {remainingToReceive}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Ordered Quantity</p>
-                  <p className="text-2xl font-bold">{item.quantity}</p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor={`received-${item.id}`}>Received Quantity</Label>
-                  <Input
-                    id={`received-${item.id}`}
-                    type="number"
-                    min="0"
-                    max={item.quantity}
-                    value={item.received_quantity}
-                    onChange={(e) => updateReceivedQuantity(item.id, parseInt(e.target.value) || 0)}
-                    className="text-lg font-semibold"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`receiving-${item.id}`}>Receiving Quantity</Label>
+                    <Input
+                      id={`receiving-${item.id}`}
+                      type="number"
+                      min="0"
+                      max={remainingToReceive}
+                      value={item.receiving_quantity}
+                      onChange={(e) => updateReceivingQuantity(item.id, parseInt(e.target.value) || 0)}
+                      className="text-lg font-semibold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`batch-${item.id}`}>Batch Number</Label>
+                    <Input
+                      id={`batch-${item.id}`}
+                      value={item.batch_number}
+                      onChange={(e) => updateItemField(item.id, 'batch_number', e.target.value)}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`expiry-${item.id}`}>Expiry Date</Label>
+                    <Input
+                      id={`expiry-${item.id}`}
+                      type="date"
+                      value={item.expiry_date}
+                      onChange={(e) => updateItemField(item.id, 'expiry_date', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Line Total</Label>
+                    <Input
+                      value={`KSh ${(item.receiving_quantity * item.unit_cost).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
+                      disabled
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Unit Cost</Label>
-                  <Input
-                    value={`KSh ${item.unit_cost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
-                    disabled
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Line Total</Label>
-                  <Input
-                    value={`KSh ${(item.received_quantity * item.unit_cost).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
-                    disabled
-                  />
-                </div>
-              </div>
 
-              {item.received_quantity < item.quantity && (
-                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                  <p className="text-sm text-amber-800 dark:text-amber-200">
-                    ⚠️ Partially received: {item.received_quantity} of {item.quantity}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
+                {item.receiving_quantity < remainingToReceive && (
+                  <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          Partial receipt: {item.receiving_quantity} of {remainingToReceive} remaining
+                        </p>
+                        <div className="space-y-1">
+                          <Label htmlFor={`rejection-${item.id}`} className="text-xs">Rejection Reason (if applicable)</Label>
+                          <Input
+                            id={`rejection-${item.id}`}
+                            value={item.rejection_reason}
+                            onChange={(e) => updateItemField(item.id, 'rejection_reason', e.target.value)}
+                            placeholder="e.g., Damaged, Wrong item, Quality issue"
+                            className="bg-white dark:bg-background"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Delivery Notes</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional notes about this delivery..."
+              rows={3}
+            />
+          </div>
 
           <div className="flex justify-between items-center pt-4 border-t">
             <div>
-              <p className="text-sm text-muted-foreground">Total Received Value</p>
+              <p className="text-sm text-muted-foreground">Total Receiving Value</p>
               <p className="text-2xl font-bold">
-                KSh {items.reduce((sum, item) => sum + (item.received_quantity * item.unit_cost), 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                KSh {items.reduce((sum, item) => sum + (item.receiving_quantity * item.unit_cost), 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="flex gap-2">
@@ -219,7 +364,7 @@ export default function ReceivePurchaseOrder() {
                 Cancel
               </Button>
               <Button onClick={handleReceive} disabled={loading}>
-                {loading ? 'Processing...' : 'Confirm Receipt'}
+                {loading ? 'Processing...' : 'Confirm Receipt & Create GRN'}
               </Button>
             </div>
           </div>

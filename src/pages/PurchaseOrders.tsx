@@ -47,7 +47,8 @@ export default function PurchaseOrders() {
     switch (status) {
       case 'draft': return 'secondary';
       case 'sent': return 'default';
-      case 'received': return 'outline';
+      case 'partially_received': return 'outline';
+      case 'received': return 'default';
       case 'cancelled': return 'destructive';
       default: return 'default';
     }
@@ -192,6 +193,16 @@ export default function PurchaseOrders() {
                           <XCircle className="h-4 w-4" />
                         </Button>
                       </>
+                    )}
+                    {isAdmin && order.status === 'partially_received' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/purchase-orders/${order.id}/receive`)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Receive More
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>

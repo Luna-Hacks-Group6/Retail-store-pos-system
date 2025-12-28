@@ -1,4 +1,4 @@
-import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, MapPin, ArrowRightLeft } from 'lucide-react';
+import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, MapPin, ArrowRightLeft, Receipt, ClipboardCheck, FileSpreadsheet, History, RotateCcw, Clock } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import {
   Sidebar,
@@ -20,10 +20,16 @@ export function AppSidebar() {
   const navItems = [
     { title: 'Dashboard', url: '/dashboard', icon: Home, roles: ['admin', 'cashier'] },
     { title: 'New Sale', url: '/sales', icon: ShoppingCart, roles: ['admin', 'cashier'] },
+    { title: 'Invoices', url: '/invoices', icon: Receipt, roles: ['admin', 'cashier'] },
+    { title: 'Returns', url: '/returns', icon: RotateCcw, roles: ['admin', 'cashier'] },
     { title: 'Products', url: '/products', icon: Package, roles: ['admin', 'cashier'] },
     { title: 'Customers', url: '/customers', icon: Users, roles: ['admin', 'cashier'] },
     { title: 'Vendors', url: '/vendors', icon: TruckIcon, roles: ['admin'] },
     { title: 'Purchase Orders', url: '/purchase-orders', icon: FileText, roles: ['admin'] },
+    { title: 'Delivery Notes', url: '/delivery-notes', icon: ClipboardCheck, roles: ['admin'] },
+    { title: 'Supplier Invoices', url: '/supplier-invoices', icon: FileSpreadsheet, roles: ['admin'] },
+    { title: 'Stock Movements', url: '/stock-movements', icon: History, roles: ['admin'] },
+    { title: 'Shifts', url: '/shifts', icon: Clock, roles: ['admin', 'cashier'] },
     { title: 'Locations', url: '/locations', icon: MapPin, roles: ['admin'] },
     { title: 'Transfers', url: '/inventory-transfers', icon: ArrowRightLeft, roles: ['admin'] },
     { title: 'Reports', url: '/reports', icon: BarChart3, roles: ['admin'] },

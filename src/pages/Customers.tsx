@@ -41,6 +41,8 @@ interface Customer {
   total_purchases: number;
   purchase_count: number;
   is_frequent: boolean;
+  credit_limit: number;
+  credit_balance: number;
 }
 
 export default function Customers() {
@@ -195,6 +197,7 @@ export default function Customers() {
                 <TableHead className="hidden md:table-cell text-xs sm:text-sm">Email</TableHead>
                 <TableHead className="text-xs sm:text-sm">Purchases</TableHead>
                 <TableHead className="hidden lg:table-cell text-xs sm:text-sm">Total Spent</TableHead>
+                <TableHead className="hidden xl:table-cell text-xs sm:text-sm">Credit Balance</TableHead>
                 <TableHead className="hidden sm:table-cell text-xs sm:text-sm">Status</TableHead>
                 <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
               </TableRow>
@@ -207,6 +210,13 @@ export default function Customers() {
                   <TableCell className="hidden md:table-cell text-xs sm:text-sm">{customer.email || '-'}</TableCell>
                   <TableCell className="text-xs sm:text-sm">{customer.purchase_count}</TableCell>
                   <TableCell className="hidden lg:table-cell text-xs sm:text-sm">KSh {customer.total_purchases.toLocaleString('en-KE', { minimumFractionDigits: 0 })}</TableCell>
+                  <TableCell className="hidden xl:table-cell text-xs sm:text-sm">
+                    {customer.credit_balance > 0 ? (
+                      <Badge variant="destructive">KSh {customer.credit_balance.toLocaleString('en-KE')}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {customer.is_frequent && (
                       <Badge variant="secondary">
