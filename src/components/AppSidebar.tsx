@@ -1,4 +1,4 @@
-import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, MapPin, ArrowRightLeft, Receipt, ClipboardCheck, FileSpreadsheet, History, RotateCcw, Clock } from 'lucide-react';
+import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, MapPin, ArrowRightLeft, Receipt, ClipboardCheck, FileSpreadsheet, History, RotateCcw, Clock, Wallet } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import {
   Sidebar,
@@ -29,6 +29,7 @@ export function AppSidebar() {
     { title: 'Delivery Notes', url: '/delivery-notes', icon: ClipboardCheck, roles: ['admin'] },
     { title: 'Supplier Invoices', url: '/supplier-invoices', icon: FileSpreadsheet, roles: ['admin'] },
     { title: 'Stock Movements', url: '/stock-movements', icon: History, roles: ['admin'] },
+    { title: 'Accounts Receivable', url: '/accounts-receivable', icon: Wallet, roles: ['admin'] },
     { title: 'Shifts', url: '/shifts', icon: Clock, roles: ['admin', 'cashier'] },
     { title: 'Locations', url: '/locations', icon: MapPin, roles: ['admin'] },
     { title: 'Transfers', url: '/inventory-transfers', icon: ArrowRightLeft, roles: ['admin'] },

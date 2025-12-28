@@ -34,6 +34,7 @@ import Invoices from "./pages/Invoices";
 import DeliveryNotes from "./pages/DeliveryNotes";
 import SupplierInvoices from "./pages/SupplierInvoices";
 import StockMovements from "./pages/StockMovements";
+import AccountsReceivable from "./pages/AccountsReceivable";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
                         <Route path="/delivery-notes" element={<DeliveryNotes />} />
                         <Route path="/supplier-invoices" element={<SupplierInvoices />} />
                         <Route path="/stock-movements" element={<StockMovements />} />
+                        <Route path="/accounts-receivable" element={<AccountsReceivable />} />
                         <Route path="/mobile-cashier" element={<MobileCashier />} />
                         <Route path="/locations" element={<Locations />} />
                         <Route path="/inventory-transfers" element={<InventoryTransfers />} />
