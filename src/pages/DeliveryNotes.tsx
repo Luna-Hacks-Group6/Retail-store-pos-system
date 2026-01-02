@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import { GRNInvoiceDownload } from '@/components/GRNInvoiceDownload';
 
 interface DeliveryNote {
   id: string;
@@ -302,12 +303,34 @@ export default function DeliveryNotes() {
                     KSh {selectedNote.total_value.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                {isAdmin && selectedNote.status === 'verified' && (
-                  <Button onClick={() => handleCompleteNote(selectedNote.id)}>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Complete & Update Stock
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  <GRNInvoiceDownload
+                    data={{
+                      grn_number: selectedNote.grn_number,
+                      po_number: selectedNote.purchase_orders?.po_number || '',
+                      vendor_name: selectedNote.vendors?.name || '',
+                      delivery_date: selectedNote.delivery_date,
+                      total_value: selectedNote.total_value,
+                      total_items: selectedNote.total_items,
+                      notes: selectedNote.notes || undefined,
+                      items: noteItems.map(item => ({
+                        product_name: item.products?.name || '',
+                        sku: item.products?.sku || '',
+                        ordered_quantity: item.ordered_quantity,
+                        received_quantity: item.received_quantity,
+                        rejected_quantity: item.rejected_quantity,
+                        unit_cost: item.unit_cost,
+                        line_total: item.line_total,
+                      })),
+                    }}
+                  />
+                  {isAdmin && selectedNote.status === 'verified' && (
+                    <Button onClick={() => handleCompleteNote(selectedNote.id)}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Complete & Update Stock
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}
