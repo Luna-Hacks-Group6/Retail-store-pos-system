@@ -45,8 +45,8 @@ export default defineConfig(({ mode }) => ({
         'pwa-512x512.png',
       ],
       manifest: {
-        name: 'Molabs-POS - Professional Wholesale Point of Sale',
-        short_name: 'Molabs-POS',
+        name: 'CFI-POS - Professional Wholesale Point of Sale',
+        short_name: 'CFI-POS',
         description: 'Professional wholesale point-of-sale system with inventory management, sales tracking, and real-time reporting. Works offline for uninterrupted business operations.',
         theme_color: '#1e293b',
         background_color: '#f8fafc',

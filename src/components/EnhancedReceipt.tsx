@@ -61,9 +61,9 @@ export function EnhancedReceipt({
         <CardContent className="p-6 font-mono text-sm">
           {/* Header */}
           <div className="text-center border-b-2 border-dashed pb-4 mb-4">
-            <h1 className="text-xl font-bold mb-1">Molabs-POS</h1>
+            <h1 className="text-xl font-bold mb-1">CFI-POS</h1>
             <p className="text-xs text-muted-foreground">Wholesale Point of Sale</p>
-            <p className="text-xs text-muted-foreground mt-1">Built by Molabs Tech Solutions</p>
+            <p className="text-xs text-muted-foreground mt-1">Built by CFI Tech Solutions</p>
           </div>
 
           {/* Sale Info */}
@@ -144,8 +144,8 @@ export function EnhancedReceipt({
           <div className="text-center text-xs text-muted-foreground border-t-2 border-dashed pt-4 mt-4">
             <p className="mb-1">Thank you for your business!</p>
             <p className="mb-1">Goods once sold cannot be returned</p>
-            <p className="text-[10px] mt-2">Powered by Molabs Tech Solutions</p>
-            <p className="text-[10px]">www.molabstech.com</p>
+            <p className="text-[10px] mt-2">Powered by CFI Tech Solutions</p>
+            <p className="text-[10px]">www.cfitech.com</p>
           </div>
         </CardContent>
       </Card>

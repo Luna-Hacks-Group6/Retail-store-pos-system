@@ -9,7 +9,7 @@ interface QueuedTransaction {
   timestamp: number;
 }
 
-const QUEUE_KEY = 'molabs_offline_queue';
+const QUEUE_KEY = 'cfi_offline_queue';
 
 export const useOfflineQueue = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);

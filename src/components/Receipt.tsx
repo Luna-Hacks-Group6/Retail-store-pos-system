@@ -278,7 +278,7 @@ export function Receipt({ saleId, onClose }: ReceiptProps) {
           <div className="text-center text-xs border-t pt-4">
             <p>{settings.receipt_footer || 'Thank you for your business!'}</p>
             <p className="mt-2 text-muted-foreground">
-              Powered by Molabs-POS System
+              Powered by CFI-POS System
             </p>
           </div>
         </div>

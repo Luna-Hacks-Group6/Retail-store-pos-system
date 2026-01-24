@@ -35,7 +35,7 @@ export function Navbar() {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <NavLink to="/dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-          <img src={molabsLogo} alt="Molabs POS" className="h-10 w-auto" />
+          <img src={molabsLogo} alt="CFI-POS" className="h-10 w-auto" />
         </NavLink>
 
         {/* Desktop Navigation */}
@@ -84,7 +84,7 @@ export function Navbar() {
           <SheetContent side="right" className="w-64">
             <div className="flex flex-col gap-4 mt-8">
               <div className="flex items-center gap-2 mb-4">
-                <img src={molabsLogo} alt="Molabs POS" className="h-10 w-auto" />
+                <img src={molabsLogo} alt="CFI-POS" className="h-10 w-auto" />
               </div>
               <div className="flex flex-col gap-1">
                 {filteredItems.map((item) => (
