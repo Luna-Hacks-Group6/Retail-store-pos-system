@@ -10,11 +10,11 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-# Molabs-POS - Professional Wholesale Point of Sale System
+# CFI-POS - Professional Wholesale Point of Sale System
 User-agent: *
 Allow: /
 Disallow: /auth
 Disallow: /admin
 
 # Sitemap
-Sitemap: https://molabs-pos.com/sitemap.xml
+Sitemap: https://cfi-pos.com/sitemap.xml

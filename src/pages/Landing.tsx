@@ -82,10 +82,10 @@ export default function Landing() {
       <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 py-12 sm:py-20 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8 animate-fade-in">
-            <img src={molabsLogo} alt="Molabs Tech Solutions" className="h-24 sm:h-32 md:h-40 w-auto" />
+            <img src={molabsLogo} alt="CFI Tech Solutions" className="h-24 sm:h-32 md:h-40 w-auto" />
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight max-w-4xl">
               Transform Your Wholesale Business with
-              <span className="text-primary block mt-2">Molabs-POS</span>
+              <span className="text-primary block mt-2">CFI-POS</span>
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl">
               The all-in-one point of sale system designed specifically for wholesale businesses.
@@ -106,7 +106,7 @@ export default function Landing() {
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-4xl font-bold mb-4">Challenges We Solve</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Running a wholesale business is complex. Molabs-POS simplifies your daily operations.
+              Running a wholesale business is complex. CFI-POS simplifies your daily operations.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
@@ -166,7 +166,7 @@ export default function Landing() {
       <section className="py-12 sm:py-16 bg-gradient-to-br from-primary/5 to-accent/5 overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 animate-slide-in-left">
           <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-4">The Molabs Advantage</h2>
+            <h2 className="text-2xl sm:text-4xl font-bold mb-4">The CFI Advantage</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Measurable results that impact your bottom line from day one.
             </p>
@@ -187,7 +187,7 @@ export default function Landing() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-2xl sm:text-4xl font-bold mb-4">Why Choose Molabs Tech Solutions?</h2>
+              <h2 className="text-2xl sm:text-4xl font-bold mb-4">Why Choose CFI Tech Solutions?</h2>
             </div>
             <div className="grid sm:grid-cols-3 gap-8 text-center">
               <div>
@@ -223,7 +223,7 @@ export default function Landing() {
             Ready to Transform Your Business?
           </h2>
           <p className="text-lg sm:text-xl text-primary-foreground/90 mb-8 max-w-2xl mx-auto">
-            Join hundreds of wholesale businesses that trust Molabs-POS for their daily operations.
+            Join hundreds of wholesale businesses that trust CFI-POS for their daily operations.
             Start your journey to streamlined success today.
           </p>
         </div>
@@ -232,9 +232,9 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-8 bg-muted/30 border-t">
         <div className="container mx-auto px-4 sm:px-6 text-center">
-          <img src={molabsLogo} alt="Molabs Tech Solutions" className="h-14 sm:h-16 w-auto mx-auto mb-4" />
+          <img src={molabsLogo} alt="CFI Tech Solutions" className="h-14 sm:h-16 w-auto mx-auto mb-4" />
           <p className="text-muted-foreground">
-            © 2024 Molabs Tech Solutions. All rights reserved.
+            © 2024 CFI Tech Solutions. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground mt-2">
             Professional Point of Sale Solutions for Modern Businesses
