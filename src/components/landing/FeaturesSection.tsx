@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 import {
   ShoppingCart,
   BarChart3,
@@ -9,7 +10,6 @@ import {
   Brain,
   CreditCard,
   Bell,
-  Globe,
 } from 'lucide-react';
 
 const features = [
@@ -78,11 +78,34 @@ const features = [
   },
 ];
 
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 40, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const },
+  },
+};
+
 export function FeaturesSection() {
   return (
     <section className="py-16 sm:py-24 bg-background" id="features">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
           <span className="inline-block text-sm font-semibold text-primary uppercase tracking-widest mb-3">
             Feature Suite
           </span>
@@ -95,32 +118,36 @@ export function FeaturesSection() {
             Built from the ground up for African wholesale and supermarket operations.
             Every feature is battle-tested in real stores.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-60px' }}
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {features.map((feature, idx) => {
             const Icon = feature.icon;
             return (
-              <Card
-                key={idx}
-                className="group border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
-                style={{ animationDelay: `${idx * 50}ms` }}
-              >
-                <CardContent className="p-6">
-                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.color} mb-4`}>
-                    <Icon className={`h-6 w-6 ${feature.iconColor}`} />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
-                </CardContent>
-              </Card>
+              <motion.div key={idx} variants={cardVariants}>
+                <Card className="group border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 h-full">
+                  <CardContent className="p-6">
+                    <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${feature.color} mb-4`}>
+                      <Icon className={`h-6 w-6 ${feature.iconColor}`} />
+                    </div>
+                    <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
+                      {feature.title}
+                    </h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

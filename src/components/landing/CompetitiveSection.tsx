@@ -1,4 +1,5 @@
 import { CheckCircle2, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const comparisons = [
   { feature: 'Offline-First Architecture', cfi: true, others: false },
@@ -13,11 +14,25 @@ const comparisons = [
   { feature: 'KES Currency & KRA Compliance', cfi: true, others: false },
 ];
 
+const rowVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { 
+    opacity: 1, x: 0,
+    transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] as const },
+  },
+};
+
 export function CompetitiveSection() {
   return (
     <section className="py-16 sm:py-24 bg-foreground text-primary-foreground" id="compare">
       <div className="container mx-auto px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6 }}
+          className="max-w-3xl mx-auto text-center mb-16"
+        >
           <span className="inline-block text-sm font-semibold text-primary uppercase tracking-widest mb-3">
             Why CFI-POS
           </span>
@@ -30,7 +45,7 @@ export function CompetitiveSection() {
             While other POS systems force you into one-size-fits-all solutions, 
             CFI-POS is purpose-built for African wholesale and supermarket operations.
           </p>
-        </div>
+        </motion.div>
 
         <div className="max-w-2xl mx-auto">
           {/* Header */}
@@ -41,20 +56,28 @@ export function CompetitiveSection() {
           </div>
 
           {/* Rows */}
-          {comparisons.map((item, idx) => (
-            <div
-              key={idx}
-              className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_120px_120px] items-center gap-4 py-3 border-b border-primary-foreground/5 hover:bg-primary-foreground/5 transition-colors rounded px-2"
-            >
-              <span className="text-sm font-medium text-primary-foreground/80">{item.feature}</span>
-              <div className="flex justify-center">
-                <CheckCircle2 className="h-5 w-5 text-accent" />
-              </div>
-              <div className="flex justify-center">
-                <X className="h-5 w-5 text-primary-foreground/20" />
-              </div>
-            </div>
-          ))}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ staggerChildren: 0.05 }}
+          >
+            {comparisons.map((item, idx) => (
+              <motion.div
+                key={idx}
+                variants={rowVariants}
+                className="grid grid-cols-[1fr_80px_80px] sm:grid-cols-[1fr_120px_120px] items-center gap-4 py-3 border-b border-primary-foreground/5 hover:bg-primary-foreground/5 transition-colors rounded px-2"
+              >
+                <span className="text-sm font-medium text-primary-foreground/80">{item.feature}</span>
+                <div className="flex justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-accent" />
+                </div>
+                <div className="flex justify-center">
+                  <X className="h-5 w-5 text-primary-foreground/20" />
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </div>
     </section>
