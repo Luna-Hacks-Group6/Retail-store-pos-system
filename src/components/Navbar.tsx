@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, Menu, X, RotateCw, Clock, Award } from 'lucide-react';
+import { Home, Package, ShoppingCart, Users, Settings, LogOut, TruckIcon, FileText, BarChart3, Menu, RotateCw, Clock, Award } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { StockAlertBadge } from './StockAlertBadge';
-import molabsLogo from '@/assets/molabs-logo.png';
+import { CFILogo } from './CFILogo';
 
 export function Navbar() {
   const { userRole, signOut } = useAuth();
@@ -34,8 +34,8 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <NavLink to="/dashboard" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-          <img src={molabsLogo} alt="CFI-POS" className="h-10 w-auto" />
+        <NavLink to="/dashboard" className="hover:opacity-80 transition-opacity">
+          <CFILogo size="sm" />
         </NavLink>
 
         {/* Desktop Navigation */}
@@ -83,8 +83,8 @@ export function Navbar() {
           </SheetTrigger>
           <SheetContent side="right" className="w-64">
             <div className="flex flex-col gap-4 mt-8">
-              <div className="flex items-center gap-2 mb-4">
-                <img src={molabsLogo} alt="CFI-POS" className="h-10 w-auto" />
+              <div className="mb-4">
+                <CFILogo size="sm" />
               </div>
               <div className="flex flex-col gap-1">
                 {filteredItems.map((item) => (

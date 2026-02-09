@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ShoppingCart } from 'lucide-react';
 import { z } from 'zod';
+import { CFILogo } from '@/components/CFILogo';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -90,16 +90,14 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
+      <Card className="w-full max-w-md shadow-xl border-border/50">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
-              <ShoppingCart className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <CFILogo size="lg" variant="full" />
           </div>
-          <CardTitle className="text-2xl">Wholesale POS System</CardTitle>
-          <CardDescription>Manage your wholesale business efficiently</CardDescription>
+          <CardTitle className="text-2xl">Welcome Back</CardTitle>
+          <CardDescription>Sign in to manage your business operations</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">

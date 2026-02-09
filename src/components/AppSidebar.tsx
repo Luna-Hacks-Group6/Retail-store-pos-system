@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from './ui/button';
+import { CFILogo } from './CFILogo';
 
 export function AppSidebar() {
   const { userRole, signOut } = useAuth();
@@ -46,7 +47,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>CFI-POS</SidebarGroupLabel>
+          <SidebarGroupLabel><CFILogo size="sm" variant="wordmark" /></SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredItems.map((item) => (
